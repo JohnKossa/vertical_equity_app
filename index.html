@@ -36,6 +36,30 @@
     .filepond--root { width: 100%; max-width: 100%; min-height: 160px; }
     .filepond--panel-root { border-radius: 10px; }
   </style>
+  <style>
+
+    :root { --bg:#0b1020; --fg:#eaf0ff; --muted:#a8b3d1; --btn:#8ab4ff; --btn2:#2dd4bf; --card:#121a33; }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;background:radial-gradient(1200px 600px at 20% -10%,#182244 0,#0b1020 55%,#0b1020 100%);color:var(--fg)}
+    .wrap{min-height:100%;display:flex;flex-direction:column}
+    header{padding:20px 16px;display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto;width:100%}
+    header a.logo{font-weight:700;letter-spacing:.2px;text-decoration:none;color:var(--fg)}
+    main{flex:1;display:grid;place-items:center;padding:30px 16px}
+    .hero{max-width:1100px;width:100%;display:grid;grid-template-columns:1.2fr 1fr;gap:26px;align-items:center}
+    .hero h1{margin:0 0 10px;font-size:clamp(28px,4.4vw,46px);line-height:1.1}
+    .hero p{margin:0;color:var(--muted);font-size:clamp(14px,1.6vw,18px)}
+    .cta{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+    .cta a{display:inline-block;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:600}
+    .cta a.primary{background:var(--btn);color:#081428}
+    .cta a.secondary{background:var(--btn2);color:#051c17}
+    .card{background:var(--card);border:1px solid #223055aa;border-radius:14px;padding:14px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
+    .feat h3{margin:0 0 6px;font-size:16px}
+    .feat p{margin:0;color:var(--muted);font-size:14px}
+    footer{padding:18px 16px;color:var(--muted);font-size:12px;text-align:center}
+    @media (max-width:900px){ .hero{grid-template-columns:1fr} .grid{grid-template-columns:1fr} }
+
+  </style>
   <!-- Papa Parse for robust CSV parsing -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <!-- FilePond (polished drag & drop) -->
