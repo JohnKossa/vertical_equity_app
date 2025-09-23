@@ -33,6 +33,10 @@
   </style>
   <!-- Papa Parse for robust CSV parsing -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <!-- FilePond (polished drag & drop) -->
+  <link href="https://unpkg.com/filepond@^4/dist/filepond.css" rel="stylesheet" />
+  <script src="https://unpkg.com/filepond@^4/dist/filepond.js"></script>
+  <script src="https://unpkg.com/filepond-plugin-file-validate-type@^1/dist/filepond-plugin-file-validate-type.js"></script>
 </head>
 <body>
   <header>
@@ -369,6 +373,38 @@
     const valFieldInput = document.getElementById('valField');
     const runBtn = document.getElementById('runBtn');
     const messages = document.getElementById('messages');
+
+    // Initialize FilePond on the existing file input for a polished drag & drop UI
+    if (window.FilePond) {
+      if (window.FilePondPluginFileValidateType) {
+        FilePond.registerPlugin(FilePondPluginFileValidateType);
+      }
+      const pond = FilePond.create(fileInput, {
+        allowMultiple: false,
+        credits: false,
+        server: null, // client-only
+        acceptedFileTypes: ['text/csv', '.csv'],
+        labelIdle: 'Drag & Drop your CSV or <span class="filepond--label-action">Browse</span>',
+      });
+      pond.on('addfile', (error, item) => {
+        if (error) return;
+        const dt = new DataTransfer();
+        dt.items.add(item.file);
+        fileInput.files = dt.files; // keep existing run() flow
+        if (typeof showMessages === 'function') {
+          showMessages([`File selected: ${item.file.name}`]);
+        }
+        // To auto-compute on select, uncomment the following line:
+        // run();
+      });
+      pond.on('removefile', () => {
+        const dt = new DataTransfer();
+        fileInput.files = dt.files; // clear
+        if (typeof showMessages === 'function') {
+          showMessages([`File removed. Please select a CSV.`]);
+        }
+      });
+    }
 
     function showMessages(msgs){
       messages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
