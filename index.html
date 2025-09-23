@@ -76,6 +76,13 @@
   <!-- Favicon -->
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="shortcut icon" href="favicon.png" type="image/png" />
+  <style>
+  #loadingOverlay { position: fixed; inset: 0; display: none; place-items: center; z-index: 9999; background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); }
+  #loadingOverlay .box { background: var(--card); color: var(--fg); border: 1px solid #223055aa; border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; gap: 12px; }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); border-top-color: var(--btn); animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  button[disabled] { opacity: 0.6; cursor: not-allowed; }
+  </style>
 </head>
 <body>
   <header>
@@ -132,6 +139,12 @@
         <li>VEI computed per spec group rules (2/4/10 groups by N), proxy = 0.5*sale + 0.5*(valuation/median_ratio).</li>
       </ul>
     </details>
+    <div id="loadingOverlay" aria-hidden="true">
+      <div class="box">
+        <div class="spinner" aria-hidden="true"></div>
+        <div id="loadingText">Computing metrics…</div>
+      </div>
+    </div>
   </main>
 
   <script>
@@ -544,6 +557,21 @@
     }
 
     async function run(){
+      function setLoading(loading) {
+        const overlay = document.getElementById('loadingOverlay');
+        const btn = document.getElementById('runBtn');
+        const saleSel = document.getElementById('saleFieldSel');
+        const valSel = document.getElementById('valFieldSel');
+        if (overlay) overlay.style.display = loading ? 'grid' : 'none';
+        if (btn) btn.disabled = !!loading;
+        if (saleSel) saleSel.disabled = !!loading;
+        if (valSel) valSel.disabled = !!loading;
+      }
+      function setLoadingText(text){
+        const t = document.getElementById('loadingText');
+        if (t) t.textContent = text;
+      }
+
       const file = fileInput.files && fileInput.files[0];
       const saleField = (saleFieldSel && saleFieldSel.value) ? saleFieldSel.value : '';
       const valField = (valFieldSel && valFieldSel.value) ? valFieldSel.value : '';
@@ -561,16 +589,47 @@
       if (!(valField in hdr)) msgs.push(`Valuation field "${valField}" not found in header.`);
       if (msgs.length){ showMessages(msgs); return; }
 
-      const out = computeMetrics(rows, saleField, valField);
-      showMessages(out.messages || []);
-      renderResults('results', out);
+      // Build compact transferable payload
+      const pairs = rows.map(r => [r[saleField], r[valField]]);
 
-      // Collapse the input drawer after successful compute and scroll to results
-      if (inputDrawer) inputDrawer.open = false;
-      const resultsSection = document.querySelector('section + section');
-      if (resultsSection && resultsSection.scrollIntoView) {
-        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Ensure a single worker instance
+      let w = window.__metricsWorker;
+      if (!w) {
+        try {
+          w = new Worker('worker.js');
+          window.__metricsWorker = w;
+          w.onmessage = (ev) => {
+            const { type } = ev.data || {};
+            if (type === 'progress'){
+              const p = Math.max(0, Math.min(1, ev.data.p || 0));
+              setLoadingText(`Computing metrics… ${Math.round(p*100)}%`);
+            } else if (type === 'done'){
+              const out = ev.data.result;
+              showMessages(out.messages || []);
+              renderResults('results', out);
+              setLoading(false);
+              if (inputDrawer) inputDrawer.open = false;
+              document.querySelector('section + section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (type === 'error'){
+              showMessages([`Error: ${ev.data.error}`]);
+              setLoading(false);
+            }
+          };
+          w.onerror = (e) => {
+            console.error('Worker error', e);
+            showMessages([`Worker error: ${e.message || e}`]);
+            setLoading(false);
+          };
+        } catch (e) {
+          console.error('Failed to start worker:', e);
+          showMessages(['Could not start compute worker in this environment.']);
+          return;
+        }
       }
+
+      setLoading(true);
+      setLoadingText('Computing metrics… 0%');
+      w.postMessage({ type: 'compute', pairs });
     }
 
     runBtn.addEventListener('click', run);
