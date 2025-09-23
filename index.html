@@ -30,6 +30,11 @@
     details { margin-top: 12px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
     .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eee; }
+    .hidden { display: none; }
+    .full { grid-column: 1 / -1; }
+    /* Make FilePond prominent and wide */
+    .filepond--root { width: 100%; max-width: 100%; min-height: 160px; }
+    .filepond--panel-root { border-radius: 10px; }
   </style>
   <!-- Papa Parse for robust CSV parsing -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -46,17 +51,19 @@
   <main>
     <section>
       <div class="grid">
-        <div class="field">
+        <div class="field full">
           <label for="file">CSV file</label>
           <input id="file" type="file" accept=".csv,text/csv" />
         </div>
+      </div>
+      <div id="stage2" class="grid hidden">
         <div class="field">
-          <label for="saleField">Sale field name</label>
-          <input id="saleField" type="text" placeholder="e.g., sale_price" />
+          <label for="saleFieldSel">Sale field</label>
+          <select id="saleFieldSel"></select>
         </div>
         <div class="field">
-          <label for="valField">Valuation (assessed/appraised) field name</label>
-          <input id="valField" type="text" placeholder="e.g., assessed_value" />
+          <label for="valFieldSel">Valuation (assessed/appraised) field</label>
+          <select id="valFieldSel"></select>
         </div>
         <div class="field">
           <label>&nbsp;</label>
@@ -369,8 +376,9 @@
 
     // ---------- UI wiring ----------
     const fileInput = document.getElementById('file');
-    const saleFieldInput = document.getElementById('saleField');
-    const valFieldInput = document.getElementById('valField');
+    const stage2 = document.getElementById('stage2');
+    const saleFieldSel = document.getElementById('saleFieldSel');
+    const valFieldSel = document.getElementById('valFieldSel');
     const runBtn = document.getElementById('runBtn');
     const messages = document.getElementById('messages');
 
@@ -386,7 +394,7 @@
         acceptedFileTypes: ['text/csv', '.csv'],
         labelIdle: 'Drag & Drop your CSV or <span class="filepond--label-action">Browse</span>',
       });
-      pond.on('addfile', (error, item) => {
+      pond.on('addfile', async (error, item) => {
         if (error) return;
         const dt = new DataTransfer();
         dt.items.add(item.file);
@@ -394,7 +402,29 @@
         if (typeof showMessages === 'function') {
           showMessages([`File selected: ${item.file.name}`]);
         }
-        // To auto-compute on select, uncomment the following line:
+        // Read header and populate Stage 2 selects
+        try {
+          const headers = await readHeader(item.file);
+          if (!headers.length) {
+            showMessages([`Could not read header row from CSV.`]);
+            stage2.classList.add('hidden');
+            return;
+          }
+          const saleGuess = guessField(headers, [
+            '^(sale|price|sale[_\\\s-]*price|sp)$'
+          ]);
+          const valGuess = guessField(headers, [
+            '^(assessed|appraised|valuation|value|av|sv|assessed[_\\\s-]*value)$'
+          ]);
+          populateSelect(saleFieldSel, headers, saleGuess);
+          populateSelect(valFieldSel, headers, valGuess);
+          stage2.classList.remove('hidden');
+        } catch (e) {
+          console.error(e);
+          showMessages([`Error reading CSV header: ${e && e.message ? e.message : e}`]);
+          stage2.classList.add('hidden');
+        }
+        // Optionally auto-compute after populating:
         // run();
       });
       pond.on('removefile', () => {
@@ -408,6 +438,44 @@
 
     function showMessages(msgs){
       messages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
+    }
+
+    // ---- Stage 2 helpers: read header, populate selects, guess fields ----
+    function readHeader(file){
+      return new Promise((resolve, reject)=>{
+        Papa.parse(file, {
+          preview: 1,
+          header: true,
+          skipEmptyLines: 'greedy',
+          complete: (res)=>{
+            const fields = (res.meta && Array.isArray(res.meta.fields))
+              ? res.meta.fields
+              : (res.data && res.data.length ? Object.keys(res.data[0]) : []);
+            resolve(fields.filter(f => f != null && f !== ''));
+          },
+          error: reject
+        });
+      });
+    }
+
+    function populateSelect(sel, fields, selected){
+      sel.innerHTML = '';
+      for (const f of fields){
+        const opt = document.createElement('option');
+        opt.value = f; opt.textContent = f;
+        if (f === selected) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    function guessField(fields, patterns){
+      const list = fields.map(f=>({f, l: String(f).toLowerCase()}));
+      for (const pat of patterns){
+        const re = new RegExp(pat);
+        const hit = list.find(x=> re.test(x.l));
+        if (hit) return hit.f;
+      }
+      return fields[0] || '';
     }
 
     let parsedRows = [];
@@ -432,12 +500,12 @@
 
     async function run(){
       const file = fileInput.files && fileInput.files[0];
-      const saleField = saleFieldInput.value.trim();
-      const valField = valFieldInput.value.trim();
+      const saleField = (saleFieldSel && saleFieldSel.value) ? saleFieldSel.value : '';
+      const valField = (valFieldSel && valFieldSel.value) ? valFieldSel.value : '';
       const msgs = [];
       if (!file){ msgs.push('Please choose a CSV file.'); }
-      if (!saleField){ msgs.push('Please enter the sale field name.'); }
-      if (!valField){ msgs.push('Please enter the valuation field name.'); }
+      if (!saleField){ msgs.push('Please choose the sale field.'); }
+      if (!valField){ msgs.push('Please choose the valuation field.'); }
       if (msgs.length){ showMessages(msgs); return; }
 
       const rows = await parseFile(file);

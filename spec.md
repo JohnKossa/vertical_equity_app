@@ -14,11 +14,28 @@ Plotly is probably the best choice for us here.
 
 # User workflow
 
-The user fill provide a CSV file, the name of the sale field, and the name of the valuation field. Once received, the application immediately starts computing the ratio study metrics.
+#### Stage 1 — File selection (only interactable initially)
+- Show a prominent, full-width drag-and-drop area powered by FilePond.
+- User drops or browses for a .csv file. No other controls are shown.
+- On file add, read only the header row to discover column names.
+
+#### Stage 2 — Field selection (revealed after header read)
+- Reveal two dropdowns populated from the CSV header:
+  - Sale field
+  - Valuation (assessed/appraised) field
+- Heuristics preselect likely columns; user can change.
+- A Compute metrics button becomes available.
+
+#### Compute
+- On Compute metrics, parse the full file and compute metrics (Median, 90% CI, COD, PRD, PRB, VEI).
+- Display results and a message area with counts of ignored/excluded rows and any "cannot compute" notes.
+
+#### Optional
+- Auto-compute after selection may be enabled later; default is explicit Compute metrics.
 
 # Expectations of user data
 
-The user files will always contain a header row that includes both the sale field that they specified and the valuation field that they specified.
+The user files will always contain a header row. The UI uses this header to populate the Sale field and Valuation field dropdowns. If a header cannot be read, the app prompts the user and keeps field controls hidden.
 
 Files will be comma separated.
 
@@ -105,9 +122,9 @@ vei_significance = (0.94 - 0.99) / 0.97 * 100 = -5.15%
 
 ## V0
 
-A place to upload a file, a textbox for the sale field, a textbox for the appraised_value field.
-
-A simple table display for the metrics calculated.
+- Stage 1: only a polished, full-width FilePond drag-and-drop file input is shown.
+- After a CSV is added and the header is read, Stage 2 appears with two dropdowns (Sale field, Valuation (assessed/appraised) field) and a Compute metrics button.
+- Results are shown in a simple table with a notes area for exclusions and "cannot compute" messages.
 
 ## V1
 
