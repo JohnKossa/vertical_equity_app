@@ -35,6 +35,13 @@
     /* Make FilePond prominent and wide */
     .filepond--root { width: 100%; max-width: 100%; min-height: 160px; }
     .filepond--panel-root { border-radius: 10px; }
+    /* Drawer styles */
+    .drawer { border: 1px solid #223055aa; border-radius: 10px; background: var(--card); }
+    .drawer-summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    .drawer-summary::-webkit-details-marker { display: none; }
+    .drawer[open] .drawer-summary { border-bottom: 1px solid #223055aa; }
+    .drawer-content { padding: 12px 14px; }
+    .drawer-hint { color: var(--muted); font-weight: 400; font-size: 0.9em; }
   </style>
   <style>
 
@@ -74,28 +81,36 @@
   </header>
   <main>
     <section>
-      <div class="grid">
-        <div class="field full">
-          <label for="file">CSV file</label>
-          <input id="file" type="file" accept=".csv,text/csv" />
+      <details id="inputDrawer" open class="drawer">
+        <summary class="drawer-summary">
+          <span>Data source and field selection</span>
+          <span class="drawer-hint">(click to expand/collapse)</span>
+        </summary>
+        <div class="drawer-content">
+          <div class="grid">
+            <div class="field full">
+              <label for="file">CSV file</label>
+              <input id="file" type="file" accept=".csv,text/csv" />
+            </div>
+          </div>
+          <div id="stage2" class="grid hidden">
+            <div class="field">
+              <label for="saleFieldSel">Sale field</label>
+              <select id="saleFieldSel"></select>
+            </div>
+            <div class="field">
+              <label for="valFieldSel">Valuation (assessed/appraised) field</label>
+              <select id="valFieldSel"></select>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button id="runBtn">Compute metrics</button>
+            </div>
+          </div>
+          <div class="note">Assumptions: comma-delimited, UTF-8, header present. Rows with empty/non-numeric sale or valuation are ignored. Rows with sale_price ≤ 0 are excluded.</div>
+          <div id="messages" class="note"></div>
         </div>
-      </div>
-      <div id="stage2" class="grid hidden">
-        <div class="field">
-          <label for="saleFieldSel">Sale field</label>
-          <select id="saleFieldSel"></select>
-        </div>
-        <div class="field">
-          <label for="valFieldSel">Valuation (assessed/appraised) field</label>
-          <select id="valFieldSel"></select>
-        </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <button id="runBtn">Compute metrics</button>
-        </div>
-      </div>
-      <div class="note">Assumptions: comma-delimited, UTF-8, header present. Rows with empty/non-numeric sale or valuation are ignored. Rows with sale_price ≤ 0 are excluded.</div>
-      <div id="messages" class="note"></div>
+      </details>
     </section>
 
     <section>
@@ -400,6 +415,7 @@
 
     // ---------- UI wiring ----------
     const fileInput = document.getElementById('file');
+    const inputDrawer = document.getElementById('inputDrawer');
     const stage2 = document.getElementById('stage2');
     const saleFieldSel = document.getElementById('saleFieldSel');
     const valFieldSel = document.getElementById('valFieldSel');
@@ -443,6 +459,8 @@
           populateSelect(saleFieldSel, headers, saleGuess);
           populateSelect(valFieldSel, headers, valGuess);
           stage2.classList.remove('hidden');
+          // Ensure drawer is open when file added
+          if (inputDrawer && !inputDrawer.open) inputDrawer.open = true;
         } catch (e) {
           console.error(e);
           showMessages([`Error reading CSV header: ${e && e.message ? e.message : e}`]);
@@ -543,6 +561,13 @@
       const out = computeMetrics(rows, saleField, valField);
       showMessages(out.messages || []);
       renderResults('results', out);
+
+      // Collapse the input drawer after successful compute and scroll to results
+      if (inputDrawer) inputDrawer.open = false;
+      const resultsSection = document.querySelector('section + section');
+      if (resultsSection && resultsSection.scrollIntoView) {
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
     runBtn.addEventListener('click', run);

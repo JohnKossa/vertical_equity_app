@@ -29,6 +29,7 @@ Plotly is probably the best choice for us here.
 #### Compute
 - On Compute metrics, parse the full file and compute metrics (Median, 90% CI, COD, PRD, PRB, VEI).
 - Display results and a message area with counts of ignored/excluded rows and any "cannot compute" notes.
+- After computation, the file/field selection controls collapse into a drawer to maximize space for results. Users can expand the drawer to change selections or start over.
 
 #### Optional
 - Auto-compute after selection may be enabled later; default is explicit Compute metrics.
