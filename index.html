@@ -461,7 +461,14 @@
         allowMultiple: false,
         credits: false,
         server: null, // client-only
-        acceptedFileTypes: ['text/csv', '.csv'],
+        acceptedFileTypes: [
+          'text/csv',
+          'application/vnd.ms-excel',
+          'application/csv',
+          'text/plain',
+          '.csv',
+          '.txt'
+        ],
         labelIdle: 'Drag & Drop your CSV or <span class="filepond--label-action">Browse</span>',
       });
       pond.on('addfile', async (error, item) => {
