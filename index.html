@@ -469,6 +469,13 @@
           '.csv',
           '.txt'
         ],
+        fileValidateTypeDetectType: (source, type) => new Promise((resolve) => {
+          const t = (type || '').toLowerCase();
+          if (!t || t === 'application/vnd.ms-excel' || t === 'application/csv' || t === 'text/plain') {
+            return resolve('text/csv');
+          }
+          resolve(type);
+        }),
         labelIdle: 'Drag & Drop your CSV or <span class="filepond--label-action">Browse</span>',
       });
       pond.on('addfile', async (error, item) => {
