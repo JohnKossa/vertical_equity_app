@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VEI Ratio Studies — V0</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --maxw: 980px;
+      --pad: 12px;
+      --gap: 10px;
+    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; }
+    header { padding: var(--pad); border-bottom: 1px solid #ccc; }
+    main { padding: var(--pad); max-width: var(--maxw); margin: 0 auto; }
+    .row { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    label { font-weight: 600; }
+    input[type="text"] { padding: 8px; min-width: 260px; }
+    input[type="file"] { padding: 6px 0; }
+    .note { font-size: 0.9em; color: #666; }
+    table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+    th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+    th { background: rgba(0,0,0,.05); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .warn { color: #b45309; }
+    .error { color: #b91c1c; }
+    .muted { color: #666; }
+    details { margin-top: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eee; }
+  </style>
+  <!-- Papa Parse for robust CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>VEI Ratio Studies — V0</h1>
+    <div class="note">Front-end only prototype per spec.md: upload CSV, choose sale and valuation fields, compute metrics (Median, 90% CI via bootstrap, COD, PRD, PRB, VEI).</div>
+  </header>
+  <main>
+    <section>
+      <div class="grid">
+        <div class="field">
+          <label for="file">CSV file</label>
+          <input id="file" type="file" accept=".csv,text/csv" />
+        </div>
+        <div class="field">
+          <label for="saleField">Sale field name</label>
+          <input id="saleField" type="text" placeholder="e.g., sale_price" />
+        </div>
+        <div class="field">
+          <label for="valField">Valuation (assessed/appraised) field name</label>
+          <input id="valField" type="text" placeholder="e.g., assessed_value" />
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="runBtn">Compute metrics</button>
+        </div>
+      </div>
+      <div class="note">Assumptions: comma-delimited, UTF-8, header present. Rows with empty/non-numeric sale or valuation are ignored. Rows with sale_price ≤ 0 are excluded.</div>
+      <div id="messages" class="note"></div>
+    </section>
+
+    <section>
+      <h2>Results</h2>
+      <div id="results"></div>
+    </section>
+
+    <details>
+      <summary>Help and method notes</summary>
+      <ul>
+        <li>Ratio = valuation / sale_price</li>
+        <li>Median 90% CI via nonparametric bootstrap: 10,000 resamples; percentile 5%/95%; seeded RNG for determinism.</li>
+        <li>COD = 100 * median(|ratio − median_ratio|) / median_ratio</li>
+        <li>PRD = mean(ratio) / (sum(valuation) / sum(sale_price))</li>
+        <li>PRB: OLS of ratio ~ a + b*ln(sale_price); HC3 robust SE; p-value via normal approximation.</li>
+        <li>VEI computed per spec group rules (2/4/10 groups by N), proxy = 0.5*sale + 0.5*(valuation/median_ratio).</li>
+      </ul>
+    </details>
+  </main>
+
+  <script>
+    // ---------- Utilities ----------
+    function mulberry32(seed) {
+      // Seeded PRNG (deterministic)
+      let a = seed >>> 0;
+      return function() {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function seededShuffleCopy(arr, rng) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function quantileSorted(sorted, p) {
+      if (sorted.length === 0) return NaN;
+      const pos = (sorted.length - 1) * p;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      if (sorted[base + 1] !== undefined) {
+        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+      } else {
+        return sorted[base];
+      }
+    }
+
+    function median(values) {
+      if (!values.length) return NaN;
+      const a = values.slice().sort((x,y)=>x-y);
+      const n = a.length;
+      const mid = Math.floor(n/2);
+      if (n % 2) return a[mid];
+      return (a[mid-1] + a[mid]) / 2;
+    }
+
+    function percentile(values, p) {
+      if (!values.length) return NaN;
+      const a = values.slice().sort((x,y)=>x-y);
+      return quantileSorted(a, p);
+    }
+
+    function sum(a){ return a.reduce((s,x)=>s+x,0); }
+    function mean(a){ return a.length? sum(a)/a.length : NaN; }
+    function abs(a){ return a.map(x=>Math.abs(x)); }
+
+    function formatNumber(x, digits=4){
+      if (x === null || x === undefined || Number.isNaN(x)) return '—';
+      return x.toFixed(digits);
+    }
+    function formatPct(x, digits=2){
+      if (x === null || x === undefined || Number.isNaN(x)) return '—';
+      return x.toFixed(digits) + '%';
+    }
+
+    // ---------- Bootstrap median CI (seeded) ----------
+    function bootstrapMedianCI90(values, seed=20250101, resamples=10000){
+      const n = values.length;
+      if (n === 0) return {low: NaN, high: NaN};
+      const uniq = new Set(values.map(v=>+v)).size;
+      const baseMed = median(values);
+      if (uniq === 1) return {low: baseMed, high: baseMed};
+      const rng = mulberry32(seed >>> 0);
+      const meds = new Array(resamples);
+      for (let b=0; b<resamples; b++){
+        const sample = new Array(n);
+        for (let i=0;i<n;i++){
+          sample[i] = values[Math.floor(rng()*n)];
+        }
+        meds[b] = median(sample);
+      }
+      meds.sort((x,y)=>x-y);
+      const low = quantileSorted(meds, 0.05);
+      const high = quantileSorted(meds, 0.95);
+      return {low, high};
+    }
+
+    // ---------- PRB: OLS with HC3 robust SE ----------
+    function prbHC3(sale, ratio){
+      const n = ratio.length;
+      if (n < 3) return {slope: NaN, p: NaN};
+      const x = sale.map(s => Math.log(s));
+      // Build X matrix (n x 2): [1, x]
+      let sum1=0, sumx=0, sumxx=0, sumy=0, sumxy=0;
+      for (let i=0;i<n;i++){
+        const xi = x[i]; const yi = ratio[i];
+        sum1 += 1; sumx += xi; sumxx += xi*xi; sumy += yi; sumxy += xi*yi;
+      }
+      const XtX = [ [sum1, sumx], [sumx, sumxx] ];
+      const XtY = [ sumy, sumxy ];
+      const det = XtX[0][0]*XtX[1][1] - XtX[0][1]*XtX[1][0];
+      if (Math.abs(det) < 1e-12) return {slope: NaN, p: NaN};
+      const inv = [ [ XtX[1][1]/det, -XtX[0][1]/det ], [ -XtX[1][0]/det, XtX[0][0]/det ] ];
+      const beta0 = inv[0][0]*XtY[0] + inv[0][1]*XtY[1];
+      const beta1 = inv[1][0]*XtY[0] + inv[1][1]*XtY[1];
+      // Residuals and hat values h_ii for 2-parameter model
+      const e = new Array(n);
+      const h = new Array(n);
+      for (let i=0;i<n;i++){
+        const xi = x[i]; const yi = ratio[i];
+        const yhat = beta0 + beta1*xi;
+        e[i] = yi - yhat;
+        // h_ii = x_i' (X'X)^{-1} x_i with x_i = [1, xi]
+        const v0 = inv[0][0] + inv[0][1]*xi;
+        const v1 = inv[1][0] + inv[1][1]*xi;
+        h[i] = v0*1 + v1*xi; // equivalently: [1,xi] inv [1;xi]
+      }
+      // HC3 variance: (X'X)^{-1} (X' diag(e_i^2/(1-h_i)^2) X) (X'X)^{-1}
+      let S00=0,S01=0,S11=0;
+      for (let i=0;i<n;i++){
+        const xi = x[i];
+        const w = e[i]*e[i] / Math.pow(1 - Math.min(h[i], 0.999999), 2);
+        S00 += w * 1 * 1;
+        S01 += w * 1 * xi;
+        S11 += w * xi * xi;
+      }
+      // Compute middle matrix M = X'WX
+      const M = [ [S00, S01], [S01, S11] ];
+      // Var(beta) = inv * M * inv
+      const V00 = inv[0][0]* (M[0][0]*inv[0][0] + M[0][1]*inv[1][0]) + inv[0][1]*( M[1][0]*inv[0][0] + M[1][1]*inv[1][0] );
+      const V01 = inv[0][0]* (M[0][0]*inv[0][1] + M[0][1]*inv[1][1]) + inv[0][1]*( M[1][0]*inv[0][1] + M[1][1]*inv[1][1] );
+      const V11 = inv[1][0]* (M[0][0]*inv[0][1] + M[0][1]*inv[1][1]) + inv[1][1]*( M[1][0]*inv[0][1] + M[1][1]*inv[1][1] );
+      const se1 = Math.sqrt(Math.max(V11, 0));
+      const slope = beta1;
+      // Normal approximation for p-value
+      const z = se1 > 0 ? Math.abs(slope / se1) : NaN;
+      const p = isFinite(z) ? 2*(1 - normalCDF(z)) : NaN;
+      return {slope, p};
+    }
+
+    // Standard normal CDF (Hart approximation)
+    function normalCDF(x){
+      // Abramowitz and Stegun formula 7.1.26
+      const t = 1 / (1 + 0.2316419 * Math.abs(x));
+      const d = 0.3989423 * Math.exp(-x*x/2);
+      let p = d * t * (0.3193815 + t*(-0.3565638 + t*(1.781478 + t*(-1.821256 + t*1.330274))));
+      if (x > 0) p = 1 - p; else p = p;
+      return p;
+    }
+
+    function computeMetrics(rows, saleField, valField){
+      // rows: array of objects with fields
+      const filtered = [];
+      let ignored = 0, excludedNonPos = 0;
+      for (const r of rows){
+        const sale = parseNumber(r[saleField]);
+        const val = parseNumber(r[valField]);
+        if (!isFinite(sale) || !isFinite(val)) { ignored++; continue; }
+        if (sale <= 0) { excludedNonPos++; continue; }
+        filtered.push({sale, val});
+      }
+      const sale = filtered.map(r=>r.sale);
+      const val = filtered.map(r=>r.val);
+      const ratios = filtered.map(r=> r.val / r.sale);
+      const n = ratios.length;
+      const messages = [];
+      messages.push(`${rows.length} rows read. ${ignored} ignored for empty/non-numeric fields. ${excludedNonPos} excluded for sale_price ≤ 0.`);
+      if (n === 0) return {messages, n, error:"No valid rows after exclusions."};
+
+      const med = median(ratios);
+      const ci = bootstrapMedianCI90(ratios);
+      const deviations = ratios.map(x=>Math.abs(x - med));
+      const COD = 100 * (median(deviations) / med);
+      const meanRatio = mean(ratios);
+      const weightedMeanRatio = sum(val) / sum(sale);
+      const PRD = meanRatio / weightedMeanRatio;
+
+      let PRB_slope = NaN, PRB_p = NaN;
+      if (n >= 3 && new Set(sale).size > 1){
+        const prb = prbHC3(sale, ratios);
+        PRB_slope = prb.slope;
+        PRB_p = prb.p;
+      } else {
+        messages.push('PRB cannot be computed: need N ≥ 3 and variation in sale_price.');
+      }
+
+      const vei = computeVEI(sale, val, ratios, med);
+
+      return {messages, n, med, ci, COD, PRD, PRB_slope, PRB_p, ...vei};
+    }
+
+    function parseNumber(v){
+      if (v === null || v === undefined) return NaN;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim();
+      if (!s) return NaN;
+      // remove thousands separators; assume dot decimal
+      const t = s.replace(/,/g, '');
+      const x = Number(t);
+      return isFinite(x) ? x : NaN;
+    }
+
+    function computeVEI(sale, val, ratios, sampleMedian){
+      const N = ratios.length;
+      if (N < 10){
+        return { VEI: NaN, VEI_significance: NaN, strata: [], vei_note: 'Cannot compute VEI: N < 10' };
+      }
+      let G = 10;
+      if (N <= 50) G = 2; else if (N <= 500) G = 4;
+      const proxy = sale.map((s,i)=> 0.5*s + 0.5*(val[i] / sampleMedian));
+      const idx = Array.from({length:N}, (_,i)=>i);
+      idx.sort((i,j)=>{
+        const di = proxy[i] - proxy[j];
+        if (di !== 0) return di;
+        return i - j; // stable
+      });
+      // Near-equal groups with tie handling
+      const base = Math.floor(N / G);
+      let remainder = N % G;
+      const groups = [];
+      let start = 0;
+      for (let g=0; g<G; g++){
+        let size = base + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder--;
+        let end = start + size; // exclusive
+        // Tie handling at boundary: if proxy[end-1] == proxy[end], extend
+        while (end < N && proxy[idx[end-1]] === proxy[idx[end]]){
+          end++;
+        }
+        const slice = idx.slice(start, end);
+        groups.push(slice);
+        start = end;
+        if (start >= N) break;
+      }
+      // Rebalance if we overshot due to many ties: merge trailing empties
+      if (groups.length > 0 && groups[groups.length-1].length === 0){
+        groups.pop();
+      }
+
+      const strata = groups.map(gIdx => {
+        const r = gIdx.map(i=>ratios[i]);
+        const m = median(r);
+        const ci = r.length >= 2 ? bootstrapMedianCI90(r) : {low: NaN, high: NaN};
+        return { n: r.length, median: m, ci_low: ci.low, ci_high: ci.high };
+      });
+      if (strata.length < 2){
+        return { VEI: NaN, VEI_significance: NaN, strata, vei_note: 'Insufficient strata after tie handling.' };
+      }
+      const first = strata[0];
+      const last = strata[strata.length-1];
+      const VEI = ((last.median - first.median) / sampleMedian) * 100;
+      const VEI_significance = ((last.ci_high - first.ci_low) / sampleMedian) * 100;
+      return { VEI, VEI_significance, strata, vei_note: '' };
+    }
+
+    function renderResults(target, data){
+      const el = document.getElementById(target);
+      if (data.error){
+        el.innerHTML = `<div class="error">${data.error}</div>`;
+        return;
+      }
+      const rows = [];
+      rows.push(`<tr><th>Sample size (after exclusions)</th><td>${data.n}</td></tr>`);
+      rows.push(`<tr><th>Median ratio</th><td>${formatNumber(data.med,4)}</td></tr>`);
+      rows.push(`<tr><th>Median 90% CI</th><td>[${formatNumber(data.ci.low,4)}, ${formatNumber(data.ci.high,4)}]</td></tr>`);
+      rows.push(`<tr><th>COD</th><td>${formatPct(data.COD,2)}</td></tr>`);
+      rows.push(`<tr><th>PRD</th><td>${formatNumber(data.PRD,4)}</td></tr>`);
+      rows.push(`<tr><th>PRB slope (per ln(price))</th><td>${formatNumber(data.PRB_slope,4)}</td></tr>`);
+      rows.push(`<tr><th>PRB p-value</th><td>${formatNumber(data.PRB_p,4)}</td></tr>`);
+      rows.push(`<tr><th>VEI</th><td>${formatPct(data.VEI,2)} ${data.vei_note?`<span class="muted">(${data.vei_note})</span>`:''}</td></tr>`);
+      rows.push(`<tr><th>VEI significance</th><td>${formatPct(data.VEI_significance,2)}</td></tr>`);
+
+      let strataHtml = '';
+      if (data.strata && data.strata.length){
+        strataHtml += '<h3>VEI Strata</h3>';
+        strataHtml += '<table><thead><tr><th>#</th><th>N</th><th>Median ratio</th><th>90% CI</th></tr></thead><tbody>';
+        data.strata.forEach((s, i)=>{
+          strataHtml += `<tr><td>${i+1}</td><td>${s.n}</td><td>${formatNumber(s.median,4)}</td><td>[${formatNumber(s.ci_low,4)}, ${formatNumber(s.ci_high,4)}]</td></tr>`;
+        });
+        strataHtml += '</tbody></table>';
+      }
+
+      el.innerHTML = `<table>${rows.join('')}</table>${strataHtml}`;
+    }
+
+    // ---------- UI wiring ----------
+    const fileInput = document.getElementById('file');
+    const saleFieldInput = document.getElementById('saleField');
+    const valFieldInput = document.getElementById('valField');
+    const runBtn = document.getElementById('runBtn');
+    const messages = document.getElementById('messages');
+
+    function showMessages(msgs){
+      messages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
+    }
+
+    let parsedRows = [];
+
+    function parseFile(file){
+      return new Promise((resolve, reject)=>{
+        Papa.parse(file, {
+          header: true,
+          dynamicTyping: false, // we parse numbers ourselves to handle thousands separators
+          skipEmptyLines: 'greedy',
+          worker: false,
+          complete: (res)=>{
+            if (res.errors && res.errors.length){
+              console.warn(res.errors);
+            }
+            resolve(res.data);
+          },
+          error: (err)=> reject(err)
+        });
+      });
+    }
+
+    async function run(){
+      const file = fileInput.files && fileInput.files[0];
+      const saleField = saleFieldInput.value.trim();
+      const valField = valFieldInput.value.trim();
+      const msgs = [];
+      if (!file){ msgs.push('Please choose a CSV file.'); }
+      if (!saleField){ msgs.push('Please enter the sale field name.'); }
+      if (!valField){ msgs.push('Please enter the valuation field name.'); }
+      if (msgs.length){ showMessages(msgs); return; }
+
+      const rows = await parseFile(file);
+      if (!rows || !rows.length){ showMessages(['No rows found in CSV.']); return; }
+      // Validate headers
+      const hdr = rows[0];
+      if (!(saleField in hdr)) msgs.push(`Sale field "${saleField}" not found in header.`);
+      if (!(valField in hdr)) msgs.push(`Valuation field "${valField}" not found in header.`);
+      if (msgs.length){ showMessages(msgs); return; }
+
+      const out = computeMetrics(rows, saleField, valField);
+      showMessages(out.messages || []);
+      renderResults('results', out);
+    }
+
+    runBtn.addEventListener('click', run);
+  </script>
+</body>
+</html>
