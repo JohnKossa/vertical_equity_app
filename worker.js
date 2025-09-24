@@ -160,23 +160,47 @@ function medianCIFromRatios(ratiosIn, { confidence = 0.95 } = {}) {
 
 // ---------- VEI ----------
 function computeVEIWithCI(sale, val, ratios, sampleMedian){
+  
+  // Get the number of samples
   const N = ratios.length;
+  
+  // We must have at least 10 samples, otherwise the result is non-valid
   if (N < 10){
     return { VEI: NaN, VEI_significance: NaN, strata: [], vei_note: 'Cannot compute VEI: N < 10' };
   }
+  
+  // Calculate the number of groups:
+  // - 2 halves if we have 10-50 samples
+  // - 4 quartiles if we have 51-500 samples
+  // - 10 deciles if we have 501+ samples
   let G = 10; if (N <= 50) G = 2; else if (N <= 500) G = 4;
+  
+  // Calculate the "market proxy" statistic for each sale price/assessed value pair
+  // For each sale/ratio pair, this is:
+  // (50% of the sale price) + (50% of the (assessed value divided by the median ratio))
   const proxy = sale.map((s,i)=> 0.5*s + 0.5*(val[i] / sampleMedian));
+  
+  // Create a sorted list of market proxy values
   const idx = [];
   for (let i = 0; i < N; i++) idx.push(i);
   idx.sort((a, b) => (proxy[a] === proxy[b] ? a - b : proxy[a] - proxy[b]));
+  
+  // Divide everything nicely up into evenly sized groups
+  // Account for leftover samples in a nice & clean way
   const base = Math.floor(N / G); let remainder = N % G; const groups = []; let start=0;
   for (let g=0; g<G; g++){
     let size = base + (remainder > 0 ? 1 : 0); if (remainder > 0) remainder--;
     let end = start + size; while (end < N && proxy[idx[end-1]] === proxy[idx[end]]) end++;
     groups.push(idx.slice(start,end)); start = end; if (start >= N) break;
   }
+  // Make sure we don't have any trailing empty groups
   if (groups.length && groups[groups.length-1].length === 0) groups.pop();
-
+  
+  // For each group, get the:
+  // - median ratio of the group
+  // - upper & lower confidence interval of that median ratio
+  // - number of samples
+  // Then package those all up as strata
   const strata = [];
   for (let i=0; i<groups.length; i++){
     const group = groups[i];
@@ -185,13 +209,23 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
     const ci = r.length >= 2 ? medianCIFromRatios(r) : {low: NaN, high: NaN};
     strata.push({ n: r.length, median: m, ci_low: ci.low, ci_high: ci.high });
   }
+  
+  // If we have less than 2 strata, we're in an invalid situation
   if (strata.length < 2){
     return { VEI: NaN, VEI_significance: NaN, strata, vei_note: 'Insufficient strata after tie handling.' };
   }
+  
+  // Identify the first (lowest) and last (highest) strata
   const first = strata[0];
   const last = strata[strata.length-1];
+  
+  // Calculate VEI statistic
   const VEI = ((last.median - first.median) / sampleMedian) * 100;
+  
+  // Calculate VEI significance
   const VEI_significance = ((last.ci_high - first.ci_low) / sampleMedian) * 100;
+  
+  // TODO: also calculate rulings (is VEI stat in/out of range, if out, is it also significant -- test the null hypothesis)
   return { VEI, VEI_significance, strata, vei_note: '' };
 }
 
