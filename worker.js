@@ -177,8 +177,8 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
 
   const strata = [];
   for (let i=0; i<groups.length; i++){
-    const gIdx = groups[i];
-    const r = gIdx.map(k=>ratios[k]);
+    const group = groups[i];
+    const r = group.map(k=>ratios[k]);
     const m = median(r);
     const ci = r.length >= 2 ? medianCIFromRatios(r) : {low: NaN, high: NaN};
     strata.push({ n: r.length, median: m, ci_low: ci.low, ci_high: ci.high });
