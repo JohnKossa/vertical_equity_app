@@ -166,7 +166,7 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
   }
   let G = 10; if (N <= 50) G = 2; else if (N <= 500) G = 4;
   const proxy = sale.map((s,i)=> 0.5*s + 0.5*(val[i] / sampleMedian));
-  const idx = Array.from({length:N}, (_,i)=>i).sort((i,j)=> proxy[i]===proxy[j]? i-j : proxy[i]-proxy[j]);
+  const idx = Array.from({length:N}, (_,i)=>i).sort((a,b)=> proxy[a]===proxy[b]? a-b : proxy[a]-proxy[b]);
   const base = Math.floor(N / G); let remainder = N % G; const groups = []; let start=0;
   for (let g=0; g<G; g++){
     let size = base + (remainder > 0 ? 1 : 0); if (remainder > 0) remainder--;
