@@ -90,7 +90,7 @@ function prbHC3(sale, ratio){
   return {slope, p};
 }
 
-// ---------- Bootstrap median CI with progress (deterministic) ----------
+// ---------- Bootstrap median CI with progress (deterministic) NOT CURRENTLY USED----------
 function bootstrapMedianCI90WithProgress(values, seed=20250101, resamples=10000, progressBase=0, progressSpan=1){
   const n = values.length;
   if (n === 0) return {low: NaN, high: NaN};
@@ -116,6 +116,48 @@ function bootstrapMedianCI90WithProgress(values, seed=20250101, resamples=10000,
   return {low, high};
 }
 
+function medianCIFromRatios(ratiosIn, { confidence = 0.95 } = {}) {
+  if (!Array.isArray(ratiosIn)) {
+    throw new Error("Provide an array of ratios (assessed/sale).");
+  }
+
+  // Clean & sort
+  const ratios = ratiosIn.filter(x => isFinite(x) && x > 0).slice().sort((a, b) => a - b);
+  const n = ratios.length;
+  if (n === 0) return { n: 0, median: NaN, lower: NaN, upper: NaN };
+
+  // z per spec
+  const z = confidence === 0.90 ? 1.64 : 1.96;
+
+  // Rank offset
+  let rBase = (z * Math.sqrt(n)) / 2;
+  if (n % 2 === 0) rBase += 0.5;
+  const r = Math.ceil(rBase);
+
+
+  // Confidence limits via order stats
+  let lowerPos1B, upperPos1B; // 1-based positions
+  if (n % 2 === 1) {
+    const m = (n + 1) / 2;
+    lowerPos1B = m - r;
+    upperPos1B = m + r;
+  } else {
+    const left = n / 2;
+    const right = n / 2 + 1;
+    lowerPos1B = right - r;
+    upperPos1B = left + r;
+  }
+
+  // clamp to [1, n] and convert to 0-based
+  const lowerIdx = Math.max(1, Math.min(n, lowerPos1B)) - 1;
+  const upperIdx = Math.max(1, Math.min(n, upperPos1B)) - 1;
+
+  return {
+    low: ratios[lowerIdx],
+    high: ratios[upperIdx],
+  };
+}
+
 // ---------- VEI ----------
 function computeVEIWithCI(sale, val, ratios, sampleMedian){
   const N = ratios.length;
@@ -138,7 +180,7 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
     const gIdx = groups[i];
     const r = gIdx.map(k=>ratios[k]);
     const m = median(r);
-    const ci = r.length >= 2 ? bootstrapMedianCI90WithProgress(r, 20250101, 10000, 0.80 + (i/groups.length)*0.20, 0.20/groups.length) : {low: NaN, high: NaN};
+    const ci = r.length >= 2 ? medianCIFromRatios(r) : {low: NaN, high: NaN};
     strata.push({ n: r.length, median: m, ci_low: ci.low, ci_high: ci.high });
   }
   if (strata.length < 2){
@@ -172,7 +214,7 @@ function computeMetricsFromPairs(pairs){
 
   const med = median(ratios);
   // Overall median CI (posts progress up to ~0.8)
-  const ci = bootstrapMedianCI90WithProgress(ratios, 20250101, 10000, 0.10, 0.70);
+  const ci = medianCIFromRatios(ratios);
   const deviations = ratios.map(x=>Math.abs(x - med));
   const COD = 100 * (median(deviations) / med);
   const meanRatio = mean(ratios);
