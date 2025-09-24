@@ -59,7 +59,9 @@
 
     :root { --bg:#0b1020; --fg:#eaf0ff; --muted:#a8b3d1; --btn:#8ab4ff; --btn2:#2dd4bf; --card:#121a33; }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;background:radial-gradient(1200px 600px at 20% -10%,#182244 0,#0b1020 55%,#0b1020 100%);color:var(--fg)}
+    html,body{height:100%;margin:0}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;color:var(--fg);background-color:var(--bg)}
+    body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(1200px 600px at 20% -10%,#182244 0,#0b1020 55%,#0b1020 100%) no-repeat;background-position:0 0;}
     .wrap{min-height:100%;display:flex;flex-direction:column}
     header{padding:20px 16px;display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto;width:100%}
     header a.logo{font-weight:700;letter-spacing:.2px;text-decoration:none;color:var(--fg)}
