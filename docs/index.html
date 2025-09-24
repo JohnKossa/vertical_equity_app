@@ -63,10 +63,11 @@
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;color:var(--fg);background-color:var(--bg)}
     body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(1200px 600px at 20% -10%,#182244 0,#0b1020 55%,#0b1020 100%) no-repeat;background-position:0 0;}
     .wrap{min-height:100%;display:flex;flex-direction:column}
-    header{padding:20px 16px;display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto;width:100%}
+    header{padding:20px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:1100px;margin:0 auto;width:100%}
+    header .hero{display:block;grid-template-columns:none !important;}
     header a.logo{font-weight:700;letter-spacing:.2px;text-decoration:none;color:var(--fg)}
     main{flex:1;display:grid;place-items:center;padding:30px 16px}
-    .hero{max-width:1100px;width:100%;display:grid;grid-template-columns:1.2fr 1fr;gap:26px;align-items:center}
+    main .hero{max-width:1100px;width:100%;display:grid;grid-template-columns:1.2fr 1fr;gap:26px;align-items:center}
     .hero h1{margin:0 0 10px;font-size:clamp(28px,4.4vw,46px);line-height:1.1}
     .hero p{margin:0;color:var(--muted);font-size:clamp(14px,1.6vw,18px)}
     .cta{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
@@ -78,7 +79,12 @@
     .feat h3{margin:0 0 6px;font-size:16px}
     .feat p{margin:0;color:var(--muted);font-size:14px}
     footer{padding:18px 16px;color:var(--muted);font-size:12px;text-align:center}
-    @media (max-width:900px){ .hero{grid-template-columns:1fr} .grid{grid-template-columns:1fr} }
+    @media (max-width:900px){ main .hero{grid-template-columns:1fr} .grid{grid-template-columns:1fr} }
+
+    /* Keep links the same color as surrounding text in all states */
+    a { color: inherit; text-decoration-color: currentColor; }
+    a:visited { color: inherit; }
+    a:hover, a:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 
   </style>
   <!-- Papa Parse (local) -->
@@ -102,8 +108,9 @@
 </head>
 <body>
   <header>
-    <h1>VEI Ratio Studies — V0</h1>
-    <div class="note">Front-end only prototype per spec.md: upload CSV, choose sale and valuation fields, compute metrics (Median, 90% CI via bootstrap, COD, PRD, PRB, VEI).</div>
+    <h1>Vertical Equity App</h1>
+    <div class="hero">Try out the <a href="https://www.iaao.org/about/board-of-directors/governing-documents/ratio-studies-exposure-draft/">new IAAO vertical equity index (VEI) metric!</a></div>
+    <div class="note">All data provided on this page stays secure. All computations are performed locally. No data leaves your computer.</div>
   </header>
   <main>
     <section>
@@ -162,6 +169,10 @@
       </div>
     </div>
   </main>
+  <footer>
+    <div>Implementation by <a href="mailto:kg959ster@gmail.com">John Kossa</a> and <a href="mailto:lars@landeconomics.org">Lars Doucet</a></div>
+    <div>Powered by <a href="https://landeconomics.org">Center For Land Economics</a></div>
+  </footer>
 
   <script>
     const r = sessionStorage.redirect; if (r) { sessionStorage.removeItem('redirect'); history.replaceState(null, "", r); }
