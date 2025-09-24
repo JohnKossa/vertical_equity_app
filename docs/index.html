@@ -87,6 +87,19 @@
     a:visited { color: inherit; }
     a:hover, a:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 
+    /* Visually hidden, accessible text (for captions/headings) */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
   </style>
   <!-- Papa Parse (local) -->
   <script src="./vendor/papaparse/papaparse.min.js"></script>
@@ -435,20 +448,63 @@
         el.innerHTML = `<div class="error">${data.error}</div>`;
         return;
       }
-      const rows = [];
-      rows.push(`<tr><th>Sample size (after exclusions)</th><td>${data.n}</td></tr>`);
-      rows.push(`<tr><th>Median ratio</th><td>${formatNumber(data.med,4)}</td></tr>`);
-      rows.push(`<tr><th>Median 90% CI</th><td>[${formatNumber(data.ci.low,4)}, ${formatNumber(data.ci.high,4)}]</td></tr>`);
-      rows.push(`<tr><th>COD</th><td>${formatPct(data.COD,2)}</td></tr>`);
-      rows.push(`<tr><th>PRD</th><td>${formatNumber(data.PRD,4)}</td></tr>`);
-      rows.push(`<tr><th>PRB slope (per ln(price))</th><td>${formatNumber(data.PRB_slope,4)}</td></tr>`);
-      rows.push(`<tr><th>PRB p-value</th><td>${formatNumber(data.PRB_p,4)}</td></tr>`);
-      rows.push(`<tr><th>VEI</th><td>${formatPct(data.VEI,2)} ${data.vei_note?`<span class="muted">(${data.vei_note})</span>`:''}</td></tr>`);
-      rows.push(`<tr><th>VEI significance</th><td>${formatPct(data.VEI_significance,2)}</td></tr>`);
+
+      // ---------- Main (non-VEI) metrics table ----------
+      const mainRows = [];
+      mainRows.push(`<tr><th>Sample size (after exclusions)</th><td>${data.n}</td></tr>`);
+      mainRows.push(`<tr><th>Median ratio</th><td>${formatNumber(data.med,4)}</td></tr>`);
+      mainRows.push(`<tr><th>Median 90% CI</th><td>[${formatNumber(data.ci.low,4)}, ${formatNumber(data.ci.high,4)}]</td></tr>`);
+      mainRows.push(`<tr><th>COD</th><td>${formatPct(data.COD,2)}</td></tr>`);
+      mainRows.push(`<tr><th>PRD</th><td>${formatNumber(data.PRD,4)}</td></tr>`);
+      mainRows.push(`<tr><th>PRB slope (per ln(price))</th><td>${formatNumber(data.PRB_slope,4)}</td></tr>`);
+      mainRows.push(`<tr><th>PRB p-value</th><td>${formatNumber(data.PRB_p,4)}</td></tr>`);
+
+      const mainTableHtml = `<h3>Results</h3><table>${mainRows.join('')}</table>`;
+
+      // ---------- VEI Results (3 columns, no column header) ----------
+      const veiVal = data.VEI;
+      const veiSigVal = data.VEI_significance;
+      const hasVEI = Number.isFinite(veiVal);
+      const hasVEISig = Number.isFinite(veiSigVal);
+
+      let veiExplain = '—';
+      if (!hasVEI){
+        veiExplain = data.vei_note ? data.vei_note : 'Not enough data to compute VEI.';
+      } else {
+        const dir = veiVal > 0
+          ? 'progressivity (ratios rise with value)'
+          : (veiVal < 0 ? 'regressivity (ratios fall with value)' : 'neutral');
+        const absVEI = Math.abs(veiVal);
+        const within = absVEI <= 10; // ±10% threshold
+        const status = within ? 'is within acceptable limits' : 'may be outside of acceptable limits';
+        veiExplain =
+          `Your VEI is ${formatPct(veiVal,2)}, which ${status}.` +
+          (dir === 'neutral' ? '' : ` This suggests ${within?"slight ":""}${dir}.`);
+      }
+
+      let veiSigExplain = '—';
+      if (!hasVEISig) {
+        veiSigExplain = data.vei_note ? data.vei_note : 'Not enough data to assess significance.';
+      } else {
+        const absSig = Math.abs(veiSigVal);
+        const dirWord = hasVEI
+          ? (veiVal < 0 ? 'regressivity' : (veiVal > 0 ? 'progressivity' : 'vertical inequity'))
+          : 'vertical inequity';
+
+        if (absSig < 10) {
+          veiSigExplain = 'The VEI significance value is below 10%, so this test did not find evidence of statistically significant vertical inequity.';
+        } else {
+          veiSigExplain = `The VEI significance value exceeds 10%, so this test found evidence of statistically significant ${dirWord}.`;
+        }
+      }
+
+      const veiRows = [];
+      veiRows.push(`<tr><th>VEI</th><td>${formatPct(veiVal,2)}${data.vei_note?` <span class="muted">(${data.vei_note})</span>`:''}</td><td>${veiExplain}</td></tr>`);
+      veiRows.push(`<tr><th>VEI significance</th><td>${formatPct(veiSigVal,2)}</td><td>${veiSigExplain}</td></tr>`);
 
       let strataHtml = '';
       if (data.strata && data.strata.length){
-        strataHtml += '<h3>VEI Strata</h3>';
+        strataHtml += '<h4>VEI Strata</h4>';
         strataHtml += '<table><thead><tr><th>#</th><th>N</th><th>Median ratio</th><th>90% CI</th></tr></thead><tbody>';
         data.strata.forEach((s, i)=>{
           strataHtml += `<tr><td>${i+1}</td><td>${s.n}</td><td>${formatNumber(s.median,4)}</td><td>[${formatNumber(s.ci_low,4)}, ${formatNumber(s.ci_high,4)}]</td></tr>`;
@@ -456,7 +512,18 @@
         strataHtml += '</tbody></table>';
       }
 
-      el.innerHTML = `<table>${rows.join('')}</table>${strataHtml}`;
+      const veiTableHtml = `
+        <h3>VEI Results</h3>
+        <table aria-describedby="vei-caption">
+          <caption id="vei-caption" class="sr-only">Vertical Equity Index results with explanations</caption>
+          <tbody>
+            ${veiRows.join('')}
+          </tbody>
+        </table>
+        ${strataHtml}
+      `;
+
+      el.innerHTML = mainTableHtml + veiTableHtml;
     }
 
     // ---------- UI wiring ----------
