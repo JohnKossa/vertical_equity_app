@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8">
+<script>
+// Redirect unknown routes to index.html (keeps path for client router)
+sessionStorage.redirect = location.pathname + location.search + location.hash;
+location.replace("/");
+</script>

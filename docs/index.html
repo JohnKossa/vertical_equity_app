@@ -164,6 +164,8 @@
   </main>
 
   <script>
+    const r = sessionStorage.redirect; if (r) { sessionStorage.removeItem('redirect'); history.replaceState(null, "", r); }
+
     // ---------- Utilities ----------
     function mulberry32(seed) {
       // Seeded PRNG (deterministic)
