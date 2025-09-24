@@ -474,6 +474,7 @@
       const hasVEISig = Number.isFinite(veiSigVal);
 
       let veiExplain = '—';
+      let within = false; // will reflect whether VEI is within ±10%
       if (!hasVEI){
         veiExplain = data.vei_note ? data.vei_note : 'Not enough data to compute VEI.';
       } else {
@@ -481,7 +482,7 @@
           ? 'progressivity (ratios rise with value)'
           : (veiVal < 0 ? 'regressivity (ratios fall with value)' : 'neutral');
         const absVEI = Math.abs(veiVal);
-        const within = absVEI <= 10; // ±10% threshold
+        within = absVEI <= 10; // ±10% threshold
         const status = within ? 'is within acceptable limits' : 'may be outside of acceptable limits';
         veiExplain =
           `Your VEI is ${formatPct(veiVal,2)}, which ${status}.` +
@@ -506,7 +507,11 @@
 
       const veiRows = [];
       veiRows.push(`<tr><th>VEI</th><td>${formatPct(veiVal,2)}${data.vei_note?` <span class="muted">(${data.vei_note})</span>`:''}</td><td>${veiExplain}</td></tr>`);
-      veiRows.push(`<tr><th>VEI significance</th><td>${formatPct(veiSigVal,2)}</td><td>${veiSigExplain}</td></tr>`);
+      // Only show VEI significance if VEI is outside the acceptable ±10% range
+      const showSig = hasVEI && !within;
+      if (showSig) {
+        veiRows.push(`<tr><th>VEI significance</th><td>${formatPct(veiSigVal,2)}</td><td>${veiSigExplain}</td></tr>`);
+      }
 
       let strataHtml = '';
       if (data.strata && data.strata.length){
