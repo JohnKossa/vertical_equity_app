@@ -169,7 +169,6 @@
       <summary>Help and method notes</summary>
       <ul>
         <li>Ratio = valuation / sale_price</li>
-        <li>Median 90% CI via nonparametric bootstrap: 10,000 resamples; percentile 5%/95%; seeded RNG for determinism.</li>
         <li>COD = 100 * median(|ratio − median_ratio|) / median_ratio</li>
         <li>PRD = mean(ratio) / (sum(valuation) / sum(sale_price))</li>
         <li>PRB: OLS of ratio ~ a + b*ln(sale_price); HC3 robust SE; p-value via normal approximation.</li>
