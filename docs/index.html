@@ -118,13 +118,16 @@
   button[disabled] { opacity: 0.6; cursor: not-allowed; }
   /* Center the FilePond idle label vertically and horizontally */
   .filepond--drop-label { height: 100%; display: grid; place-items: center; text-align: center; padding: 0 12px; }
+  /* Minimal styling to place a privacy note at the bottom of the dropzone */
+  .filepond--root { position: relative; }
+  .filepond--panel-root { padding-bottom: 48px; }
+  .filepond--root .pond-note { position: absolute; left: 12px; right: 12px; bottom: 10px; color: var(--muted); font-size: 12px; line-height: 1.35; text-align: center; pointer-events: none; }
   </style>
 </head>
 <body>
   <header>
     <h1>Vertical Equity App</h1>
     <div class="hero">Try out the <a href="https://www.iaao.org/about/board-of-directors/governing-documents/ratio-studies-exposure-draft/">new IAAO vertical equity indicator (VEI) metric!</a></div>
-    <div class="note">All data provided on this page stays secure. All computations are performed locally. No data leaves your computer.</div>
   </header>
   <main>
     <section>
@@ -183,7 +186,7 @@
     </div>
   </main>
   <footer>
-    <div><b>Found a bug? <a href="mailto:lars@landeconomics.org">Email us!</a></b><div>
+    <div><b>Found a bug? <a href="mailto:lars@landeconomics.org">Email us!</a></b></div>
     <br>
     <div>Independent implementation by <a href="mailto:kg959ster@gmail.com">John Kossa</a> and <a href="mailto:lars@landeconomics.org">Lars Doucet</a></div>
     <div>Powered by <a href="https://landeconomics.org">Center For Land Economics</a></div>
@@ -562,7 +565,10 @@
           }
           resolve(type);
         }),
-        labelIdle: 'Drag & Drop your CSV or <span class="filepond--label-action">Browse</span>',
+        labelIdle: `
+          <span class="filepond--drop-label">Drag & Drop your CSV or <span class="filepond--label-action">Browse</span></span>
+          <span class="pond-note">Your data never leaves your computer — files are read and processed entirely in your browser.</span>
+        `,
       });
       pond.on('addfile', async (error, item) => {
         if (error) return;
