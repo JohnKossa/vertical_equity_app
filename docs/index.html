@@ -6,36 +6,79 @@
   <title>Vertical Equity App</title>
   <style>
     :root {
+      /* from first tag */
       color-scheme: light dark;
       --maxw: 980px;
       --pad: 12px;
       --gap: 10px;
+      /* from second tag */
+      --bg:#0b1020; --fg:#eaf0ff; --muted:#a8b3d1; --btn:#8ab4ff; --btn2:#2dd4bf; --card:#121a33;
     }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; }
-    header { padding: var(--pad); border-bottom: 1px solid #ccc; }
-    main { padding: var(--pad); max-width: var(--maxw); margin: 0 auto; }
+
+    /* Resets and base */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif; color: var(--fg); background-color: var(--bg); }
+
+    /* Fixed gradient backdrop */
+    body::before {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: -1;
+      background: radial-gradient(1200px 600px at 20% -10%, #182244 0, #0b1020 55%, #0b1020 100%) no-repeat;
+      background-position: 0 0;
+    }
+
+    /* Layout wrappers */
+    .wrap { min-height: 100%; display: flex; flex-direction: column; }
+
+    /* Header (preserve border-bottom and new layout) */
+    header {
+      padding: 20px 16px; /* overrides first tag’s var(--pad) */
+      display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+      max-width: 1100px; margin: 0 auto; width: 100%;
+      border-bottom: 1px solid #ccc; /* from first tag */
+    }
+    header h1 { font-size: 40px; }
+    header .hero { display: block; grid-template-columns: none !important; }
+    header a.logo { font-weight: 700; letter-spacing: .2px; text-decoration: none; color: var(--fg); }
+
+    /* Main layout: keep max-width + centering */
+    main {
+      flex: 1; display: grid; place-items: center; padding: 30px 16px; /* overrides first tag’s padding */
+      max-width: var(--maxw); margin: 0 auto; /* from first tag */
+    }
+
+    /* Form rows and fields (from first tag) */
     .row { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center; }
     .field { display: flex; flex-direction: column; gap: 6px; }
     label { font-weight: 600; }
     input[type="text"] { padding: 8px; min-width: 260px; }
     input[type="file"] { padding: 6px 0; }
     .note { font-size: 0.9em; color: #666; }
+
+    /* Tables (from first tag) */
     table { border-collapse: collapse; width: 100%; margin-top: 16px; }
     th, td { border: 1px solid #999; padding: 8px; text-align: left; }
     th { background: rgba(0,0,0,.05); }
+
+    /* Utilities (from first tag) */
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .warn { color: #b45309; }
     .error { color: #b91c1c; }
     .muted { color: #666; }
     details { margin-top: 12px; }
+
+    /* Generic grid used in forms (from first tag) */
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
     .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eee; }
     .hidden { display: none; }
     .full { grid-column: 1 / -1; }
-    /* Make FilePond prominent and wide */
-    .filepond--root { width: 100%; max-width: 100%; min-height: 160px; }
-    .filepond--panel-root { border-radius: 10px; }
-    /* Drawer styles */
+
+    /* FilePond base prominence */
+    .filepond--root { width: 100%; max-width: 100%; min-height: 160px; position: relative; }
+    .filepond--panel-root { border-radius: 10px; padding-bottom: 48px; }
+
+    /* Drawer styles (from first tag) */
     .drawer { border: 1px solid #223055aa; border-radius: 10px; background: var(--card); }
     .drawer-summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
     .drawer-summary::-webkit-details-marker { display: none; }
@@ -43,63 +86,51 @@
     .drawer-content { padding: 12px 14px; }
     .drawer-hint { color: var(--muted); font-weight: 400; font-size: 0.9em; }
     /* When the drawer is CLOSED, stack title and hint vertically */
-    .drawer:not([open]) .drawer-summary {
-      flex-direction: column;
-      align-items: center;       /* center horizontally */
-      justify-content: center;   /* avoid space-between pushing apart */
-      text-align: center;        /* center multi-line text */
-      gap: 2px;
-    }
-    /* Optional: subtle spacing tweak for the hint when stacked */
-    .drawer:not([open]) .drawer-hint {
-      margin-top: 2px;
-    }
-  </style>
-  <style>
+    .drawer:not([open]) .drawer-summary { flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }
+    .drawer:not([open]) .drawer-hint { margin-top: 2px; }
 
-    :root { --bg:#0b1020; --fg:#eaf0ff; --muted:#a8b3d1; --btn:#8ab4ff; --btn2:#2dd4bf; --card:#121a33; }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;color:var(--fg);background-color:var(--bg)}
-    body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(1200px 600px at 20% -10%,#182244 0,#0b1020 55%,#0b1020 100%) no-repeat;background-position:0 0;}
-    .wrap{min-height:100%;display:flex;flex-direction:column}
-    header{padding:20px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:1100px;margin:0 auto;width:100%}
-    header h1 { font-size: 40px;}
-    header .hero{display:block;grid-template-columns:none !important;}
-    header a.logo{font-weight:700;letter-spacing:.2px;text-decoration:none;color:var(--fg)}
-    main{flex:1;display:grid;place-items:center;padding:30px 16px}
-    main .hero{max-width:1100px;width:100%;display:grid;grid-template-columns:1.2fr 1fr;gap:26px;align-items:center}
-    .hero h1{margin:0 0 10px;font-size:clamp(28px,4.4vw,46px);line-height:1.1}
-    .hero p{margin:0;color:var(--muted);font-size:clamp(14px,1.6vw,18px)}
-    .cta{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
-    .cta a{display:inline-block;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:600}
-    .cta a.primary{background:var(--btn);color:#081428}
-    .cta a.secondary{background:var(--btn2);color:#051c17}
-    .card{background:var(--card);border:1px solid #223055aa;border-radius:14px;padding:14px}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
-    .feat h3{margin:0 0 6px;font-size:16px}
-    .feat p{margin:0;color:var(--muted);font-size:14px}
-    footer{padding:18px 16px;color:var(--muted);font-size:12px;text-align:center}
-    @media (max-width:900px){ main .hero{grid-template-columns:1fr} .grid{grid-template-columns:1fr} }
+    /* Hero + cards (from second tag) */
+    main .hero { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1.2fr 1fr; gap: 26px; align-items: center; }
+    .hero h1 { margin: 0 0 10px; font-size: clamp(28px, 4.4vw, 46px); line-height: 1.1; }
+    .hero p { margin: 0; color: var(--muted); font-size: clamp(14px, 1.6vw, 18px); }
+    .cta { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .cta a { display: inline-block; padding: 10px 14px; border-radius: 10px; text-decoration: none; font-weight: 600; }
+    .cta a.primary { background: var(--btn); color: #081428; }
+    .cta a.secondary { background: var(--btn2); color: #051c17; }
+    .card { background: var(--card); border: 1px solid #223055aa; border-radius: 14px; padding: 14px; }
 
-    /* Keep links the same color as surrounding text in all states */
+    /* Features grid (second .grid definition; must remain AFTER generic grid) */
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 22px; }
+    .feat h3 { margin: 0 0 6px; font-size: 16px; }
+    .feat p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    /* Footer */
+    footer { padding: 18px 16px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      main .hero { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* Link styling */
     a { color: inherit; text-decoration-color: currentColor; }
     a:visited { color: inherit; }
     a:hover, a:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 
-    /* Visually hidden, accessible text (for captions/headings) */
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
-    }
+    /* Visually hidden, accessible text */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+    /* Loading overlay + misc */
+    #loadingOverlay { position: fixed; inset: 0; display: none; place-items: center; z-index: 9999; background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); }
+    #loadingOverlay .box { background: var(--card); color: var(--fg); border: 1px solid #223055aa; border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; gap: 12px; }
+    .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); border-top-color: var(--btn); animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    button[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+    /* FilePond idle label centering and embedded privacy note */
+    .filepond--drop-label { height: 100%; display: grid; place-items: center; text-align: center; padding: 0 12px; }
+    .filepond--root .pond-note { position: absolute; left: 12px; right: 12px; bottom: 10px; color: var(--muted); font-size: 12px; line-height: 1.35; text-align: center; pointer-events: none; }
   </style>
   <!-- Papa Parse (local) -->
   <script src="./vendor/papaparse/papaparse.min.js"></script>
@@ -110,19 +141,6 @@
   <!-- Favicon -->
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="shortcut icon" href="favicon.png" type="image/png" />
-  <style>
-  #loadingOverlay { position: fixed; inset: 0; display: none; place-items: center; z-index: 9999; background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); }
-  #loadingOverlay .box { background: var(--card); color: var(--fg); border: 1px solid #223055aa; border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; gap: 12px; }
-  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); border-top-color: var(--btn); animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  button[disabled] { opacity: 0.6; cursor: not-allowed; }
-  /* Center the FilePond idle label vertically and horizontally */
-  .filepond--drop-label { height: 100%; display: grid; place-items: center; text-align: center; padding: 0 12px; }
-  /* Minimal styling to place a privacy note at the bottom of the dropzone */
-  .filepond--root { position: relative; }
-  .filepond--panel-root { padding-bottom: 48px; }
-  .filepond--root .pond-note { position: absolute; left: 12px; right: 12px; bottom: 10px; color: var(--muted); font-size: 12px; line-height: 1.35; text-align: center; pointer-events: none; }
-  </style>
 </head>
 <body>
   <header>
