@@ -161,6 +161,17 @@
     #runBtn.primary:active {
       transform: translateY(1px);
     }
+    /* Results empty state */
+    #results { min-height: 120px; }
+    .results-empty {
+      display: grid; place-items: center;
+      padding: 24px;
+      border: 1px dashed #223055aa;
+      border-radius: 10px;
+      background: rgba(34,48,85,0.12);
+      color: var(--muted);
+      text-align: center;
+    }
   </style>
   <!-- Papa Parse (local) -->
   <script src="./vendor/papaparse/papaparse.min.js"></script>
@@ -212,7 +223,9 @@
 
     <section>
       <h2>Results</h2>
-      <div id="results"></div>
+      <div id="results">
+        <div class="results-empty" aria-live="polite">Nothing yet! Drop a CSV above and click Compute metrics.</div>
+      </div>
     </section>
 
     <details>
