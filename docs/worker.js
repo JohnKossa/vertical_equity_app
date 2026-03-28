@@ -207,7 +207,9 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
     const r = group.map(k=>ratios[k]);
     const m = median(r);
     const ci = r.length >= 2 ? medianCIFromRatios(r) : {low: NaN, high: NaN};
-    strata.push({ n: r.length, median: m, ci_low: ci.low, ci_high: ci.high });
+    const proxyVals = group.map(k => proxy[k]);
+    const medProxy = median(proxyVals);
+    strata.push({ n: r.length, median: m, ci_low: ci.low, ci_high: ci.high, ratios: r, medProxy });
   }
   
   // If we have less than 2 strata, we're in an invalid situation

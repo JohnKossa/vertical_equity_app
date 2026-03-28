@@ -179,6 +179,8 @@
   <link href="./vendor/filepond/filepond.css" rel="stylesheet" />
   <script src="./vendor/filepond/filepond.js"></script>
   <script src="./vendor/filepond-plugin-file-validate-type/filepond-plugin-file-validate-type.js"></script>
+  <!-- Plotly (local) -->
+  <script src="./vendor/plotly/plotly.min.js"></script>
   <!-- Favicon -->
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="shortcut icon" href="favicon.png" type="image/png" />
@@ -594,7 +596,62 @@
         ${strataHtml}
       `;
 
-      el.innerHTML = mainTableHtml + veiTableHtml;
+      el.innerHTML = mainTableHtml + veiTableHtml +
+        '<div id="veiChart" style="margin-top:24px;min-height:420px;"></div>';
+      renderVEIChart(data);
+    }
+
+    // ---------- VEI Chart ----------
+    function renderVEIChart(data) {
+      const el = document.getElementById('veiChart');
+      if (!el || !window.Plotly) return;
+      if (!data.strata || data.strata.length < 2 || !isFinite(data.med)) return;
+
+      const G = data.strata.length;
+      const groupLabel = G === 2 ? 'Half' : G === 4 ? 'Quartile' : G === 10 ? 'Decile' : 'Group';
+
+      const traces = data.strata.map((s, i) => ({
+        type: 'box',
+        y: s.ratios,
+        name: `${groupLabel} ${i + 1}`,
+        boxpoints: 'outliers',
+        marker: { color: '#4285F4', size: 5, opacity: 0.8 },
+        line: { color: '#2563EB' },
+        fillcolor: 'rgba(66,133,244,0.45)',
+        hovertemplate:
+          `<b>${groupLabel} ${i + 1}</b><br>` +
+          (isFinite(s.medProxy) ? `Median proxy: $${Math.round(s.medProxy).toLocaleString()}<br>` : '') +
+          `N: ${s.n}<extra></extra>`,
+      }));
+
+      const layout = {
+        title: {
+          text: 'Vertical Equity Analysis using Vertical Equity Indicator (VEI)',
+          font: { size: 15 },
+        },
+        xaxis: { title: groupLabel, showgrid: false },
+        yaxis: { title: 'Ratio', zeroline: false, gridcolor: 'rgba(34,48,85,0.6)' },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: { color: '#eaf0ff', family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
+        showlegend: false,
+        shapes: [{
+          type: 'line',
+          xref: 'paper', x0: 0, x1: 1,
+          yref: 'y', y0: data.med, y1: data.med,
+          line: { color: '#f59e0b', width: 1.5, dash: 'dash' },
+        }],
+        annotations: [{
+          xref: 'paper', x: 1.01, xanchor: 'left',
+          yref: 'y', y: data.med,
+          text: `Sample<br>Median<br>${data.med.toFixed(4)}`,
+          showarrow: false,
+          font: { color: '#f59e0b', size: 11 },
+        }],
+        margin: { t: 50, r: 110, b: 50, l: 60 },
+      };
+
+      Plotly.newPlot(el, traces, layout, { responsive: true, displayModeBar: false });
     }
 
     // ---------- UI wiring ----------
