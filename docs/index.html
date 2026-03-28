@@ -614,6 +614,7 @@
         type: 'box',
         y: s.ratios,
         name: `${groupLabel} ${i + 1}`,
+        showlegend: false,
         boxpoints: 'outliers',
         marker: { color: '#4285F4', size: 5, opacity: 0.8 },
         line: { color: '#2563EB' },
@@ -623,6 +624,32 @@
           (isFinite(s.medProxy) ? `Median proxy: $${Math.round(s.medProxy).toLocaleString()}<br>` : '') +
           `N: ${s.n}<extra></extra>`,
       }));
+
+      // Overlay: white diamond markers with asymmetric 90% CI error bars
+      traces.push({
+        type: 'scatter',
+        mode: 'markers',
+        x: data.strata.map((_, i) => `${groupLabel} ${i + 1}`),
+        y: data.strata.map(s => s.median),
+        error_y: {
+          type: 'data',
+          symmetric: false,
+          array:      data.strata.map(s => s.ci_high - s.median),
+          arrayminus: data.strata.map(s => s.median - s.ci_low),
+          color: 'rgba(255,255,255,0.9)',
+          thickness: 2.5,
+          width: 10,
+        },
+        marker: { symbol: 'diamond', size: 9, color: '#ffffff', line: { color: '#2563EB', width: 1.5 } },
+        name: '90% CI (median)',
+        showlegend: true,
+        customdata: data.strata.map(s => [s.ci_low, s.ci_high]),
+        hovertemplate:
+          '<b>%{x}</b><br>' +
+          'Median: %{y:.4f}<br>' +
+          '90% CI: [%{customdata[0]:.4f}, %{customdata[1]:.4f}]' +
+          '<extra></extra>',
+      });
 
       const layout = {
         title: {
@@ -634,7 +661,8 @@
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
         font: { color: '#eaf0ff', family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
-        showlegend: false,
+        showlegend: true,
+        legend: { x: 1.01, xanchor: 'left', y: 1, bgcolor: 'rgba(0,0,0,0)' },
         shapes: [{
           type: 'line',
           xref: 'paper', x0: 0, x1: 1,
@@ -648,7 +676,7 @@
           showarrow: false,
           font: { color: '#f59e0b', size: 11 },
         }],
-        margin: { t: 50, r: 110, b: 50, l: 60 },
+        margin: { t: 50, r: 130, b: 50, l: 60 },
       };
 
       Plotly.newPlot(el, traces, layout, { responsive: true, displayModeBar: false });
