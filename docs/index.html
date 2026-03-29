@@ -217,6 +217,12 @@
       width: 100%;
       height: clamp(420px, 55vh, 680px);
       background: #2b3138;
+      position: relative;
+    }
+    #ratioMap .maplibregl-canvas,
+    #ratioMap .maplibregl-canvas-container {
+      width: 100% !important;
+      height: 100% !important;
     }
     .map-toolbar {
       display: flex;
@@ -319,7 +325,6 @@
       <div class="results-header">
         <h2>Results</h2>
         <div class="results-actions">
-          <button id="mapBtnTop" type="button" class="btn btn-secondary" disabled>Put It On A Map</button>
           <button id="savePdfBtn" type="button" class="btn btn-secondary" disabled>Save to PDF</button>
         </div>
       </div>
@@ -907,7 +912,6 @@
     const lonFieldSel = document.getElementById('lonFieldSel');
     const runBtn = document.getElementById('runBtn');
     const savePdfBtn = document.getElementById('savePdfBtn');
-    const mapBtnTop = document.getElementById('mapBtnTop');
     const mapBtnBottom = document.getElementById('mapBtnBottom');
     const mapSection = document.getElementById('mapSection');
     const showMapBtn = document.getElementById('showMapBtn');
@@ -1290,7 +1294,6 @@
               const out = ev.data.result;
               showMessages(out.messages || []);
               renderResults('results', out);
-              mapBtnTop.disabled = false;
               mapBtnBottom.disabled = false;
               if (mapRendered) {
                 tryBuildMap(true);
@@ -1323,6 +1326,9 @@
     function revealMapSection(){
       mapSection.classList.remove('hidden');
       mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (mapInstance) {
+        setTimeout(() => mapInstance.resize(), 0);
+      }
     }
 
     function tryBuildMap(isAutoRefresh = false){
@@ -1356,6 +1362,7 @@
       }
       try {
         renderRatioMap(features, saleField, valField);
+        if (mapInstance) mapInstance.resize();
         const info = [];
         info.push(`Mapped ${features.length} points.`);
         if (invalidCoords) info.push(`${invalidCoords} rows skipped for invalid/missing coordinates.`);
@@ -1370,7 +1377,6 @@
 
     runBtn.addEventListener('click', run);
     savePdfBtn.addEventListener('click', exportResultsToPDF);
-    mapBtnTop.addEventListener('click', revealMapSection);
     mapBtnBottom.addEventListener('click', revealMapSection);
     showMapBtn.addEventListener('click', () => tryBuildMap(false));
     resetMapExtentsBtn.addEventListener('click', fitMapToData);
