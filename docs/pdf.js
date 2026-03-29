@@ -140,8 +140,24 @@ async function generatePDF(config) {
       const targetWidth = PAGE.usableWidth;
       const targetHeight = targetWidth * (imgH / imgW);
       cursorY = ensureSpace(doc, cursorY, targetHeight);
-      doc.addImage(dataUrl, 'PNG', PAGE.margin, cursorY, targetWidth, targetHeight);
-      cursorY += targetHeight + 8;
+      try {
+        console.info('[pdf-map] addImage diagnostics', {
+          dataUrlLength: dataUrl.length,
+          sourceWidth: imgW,
+          sourceHeight: imgH,
+          targetWidth,
+          targetHeight
+        });
+        doc.addImage(dataUrl, 'PNG', PAGE.margin, cursorY, targetWidth, targetHeight);
+        cursorY += targetHeight + 8;
+      } catch (err) {
+        console.warn('[pdf-map] addImage failed', err);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(PAGE.bodyFontSize);
+        cursorY = ensureSpace(doc, cursorY, 7);
+        doc.text('Map image could not be embedded in PDF.', PAGE.margin, cursorY, { maxWidth: PAGE.usableWidth });
+        cursorY += 8;
+      }
     }
   }
 

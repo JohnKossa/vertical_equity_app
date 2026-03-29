@@ -1399,6 +1399,9 @@
         zoom: 3
       });
       mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right');
+      mapInstance.on('error', (e) => {
+        console.warn('[maplibre] map error', e && e.error ? e.error : e);
+      });
       return mapInstance;
     }
 
@@ -1425,9 +1428,12 @@
               'circle-color': ['get', 'ratioColor'],
               'circle-stroke-color': ['get', 'ratioStrokeColor'],
               'circle-stroke-width': isBWMode() ? 1.1 : 0.85,
-              'circle-opacity': 0.82
-            },
-            filter: ['==', ['get', 'shapeType'], 'circle']
+              'circle-opacity': [
+                'case',
+                ['==', ['get', 'shapeType'], 'circle'], 0.82,
+                0.35
+              ]
+            }
           });
 
           map.addLayer({
@@ -1438,7 +1444,7 @@
             layout: {
               'text-field': '△',
               'text-size': 11,
-              'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
+              'text-font': ['Open Sans Regular'],
               'text-allow-overlap': true
             },
             paint: { 'text-color': ['get', 'ratioColor'], 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
@@ -1452,7 +1458,7 @@
             layout: {
               'text-field': '▽',
               'text-size': 11,
-              'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
+              'text-font': ['Open Sans Regular'],
               'text-allow-overlap': true
             },
             paint: { 'text-color': ['get', 'ratioColor'], 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
@@ -1466,7 +1472,7 @@
             layout: {
               'text-field': '✕',
               'text-size': 11,
-              'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
+              'text-font': ['Open Sans Regular'],
               'text-allow-overlap': true
             },
             paint: { 'text-color': isBWMode() ? '#000000' : '#ff00ff', 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
