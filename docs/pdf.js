@@ -59,7 +59,7 @@ async function drawChartSection(doc, section, cursorY) {
   }
 }
 
-export async function generatePDF(config) {
+async function generatePDF(config) {
   const jsPDFCtor = resolveJsPDF();
   const doc = new jsPDFCtor({ unit: 'mm', format: 'a4' });
   const sections = Array.isArray(config && config.sections) ? config.sections : [];
