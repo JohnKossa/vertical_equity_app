@@ -325,6 +325,7 @@
       <div class="results-header">
         <h2>Results</h2>
         <div class="results-actions">
+          <button id="bwModeBtn" type="button" class="btn btn-primary hidden" disabled>Black &amp; White optimization: Off</button>
           <button id="savePdfBtn" type="button" class="btn btn-secondary hidden" disabled>Save to PDF</button>
         </div>
       </div>
@@ -738,6 +739,7 @@
 
       el.innerHTML = mainTableHtml + veiTableHtml +
         '<div id="veiChart" style="margin-top:24px;min-height:420px;"></div>';
+      lastMetricsResult = data;
       renderVEIChart(data);
       if (savePdfBtn) savePdfBtn.disabled = false;
     }
@@ -758,7 +760,8 @@
         const tablesHtml = resultsNode.querySelectorAll('table');
         const sections = [
           { type: 'text', content: 'Vertical Equity Studies Report', isTitle: true },
-          { type: 'text', content: `Generated ${new Date().toLocaleString()}` }
+          { type: 'text', content: `Generated ${new Date().toLocaleString()}` },
+          { type: 'text', content: `Visualization mode: ${isBWMode() ? 'Black & White optimization' : 'Color mode'}` }
         ];
 
         tablesHtml.forEach((tbl, i) => {
@@ -778,6 +781,35 @@
 
         if (document.getElementById('veiPlot')) {
           sections.push({ type: 'chart', plotlyDivId: 'veiPlot', title: 'VEI Chart', pageBreakBefore: true });
+        }
+
+        const mapIsVisible = mapSection && !mapSection.classList.contains('hidden') &&
+          mapShell && !mapShell.classList.contains('hidden') && mapRendered && mapInstance;
+        if (mapIsVisible) {
+          try { mapInstance.resize(); } catch (_) {}
+          const mapCanvas = mapInstance.getCanvas();
+          const mapDataUrl = mapCanvas ? mapCanvas.toDataURL('image/png') : '';
+          const mapMeta = [
+            `Latitude field: ${latFieldSel.value || '—'}`,
+            `Longitude field: ${lonFieldSel.value || '—'}`,
+            `Sale field: ${(lastRunContext && lastRunContext.saleField) || '—'}`,
+            `Valuation field: ${(lastRunContext && lastRunContext.valField) || '—'}`
+          ];
+          sections.push({ type: 'text', content: 'Map view details', isTitle: true, pageBreakBefore: true });
+          mapMeta.forEach((line) => sections.push({ type: 'text', content: line }));
+          sections.push({
+            type: 'image',
+            title: 'Ratio Map',
+            dataUrl: mapDataUrl,
+            imageWidth: mapCanvas ? mapCanvas.width : 1200,
+            imageHeight: mapCanvas ? mapCanvas.height : 700
+          });
+          sections.push({
+            type: 'text',
+            content: isBWMode()
+              ? 'Legend (B/W optimized): darker fills = farther from ratio 1.0; X marks denote negative ratios.'
+              : 'Legend: blue = ratio below 1.0, white = around 1.0, red = above 1.0, magenta = negative ratio.'
+          });
         }
 
         await window.generatePDF({
@@ -802,7 +834,14 @@
       const groupLabel = G === 2 ? 'Half' : G === 4 ? 'Quartile' : G === 10 ? 'Decile' : 'Group';
       const boxIndices = Array.from({length: G}, (_, i) => i);
       const ciIndex = G;
-      const medColor = '#dc2626';
+      const bw = isBWMode();
+      const medColor = bw ? '#111827' : '#dc2626';
+      const boxMarker = bw ? '#1f2937' : '#3b82f6';
+      const boxLine = bw ? '#111827' : '#1d4ed8';
+      const boxFill = bw ? 'rgba(107,114,128,0.35)' : 'rgba(59,130,246,0.35)';
+      const ciMarkerColor = bw ? '#111827' : '#ffffff';
+      const ciMarkerLine = bw ? '#000000' : '#1d4ed8';
+      const ciSymbol = bw ? 'square' : 'diamond';
 
       // Build inner layout: Plotly div + controls column
       const btnBase = 'display:flex;align-items:center;gap:7px;width:100%;padding:6px 9px;' +
@@ -828,9 +867,9 @@
         name: `${groupLabel} ${i + 1}`,
         showlegend: false,
         boxpoints: 'outliers',
-        marker: { color: '#3b82f6', size: 5, opacity: 0.8 },
-        line: { color: '#1d4ed8' },
-        fillcolor: 'rgba(59,130,246,0.35)',
+        marker: { color: boxMarker, size: 5, opacity: 0.8, symbol: bw ? 'circle-open' : 'circle' },
+        line: { color: boxLine },
+        fillcolor: boxFill,
         hovertemplate: '%{y:.4f}<extra></extra>',
       }));
 
@@ -849,7 +888,7 @@
           thickness: 2.5,
           width: 10,
         },
-        marker: { symbol: 'diamond', size: 9, color: '#ffffff', line: { color: '#1d4ed8', width: 1.5 } },
+        marker: { symbol: ciSymbol, size: 9, color: ciMarkerColor, line: { color: ciMarkerLine, width: 1.5 } },
         customdata: data.strata.map(s => [s.ci_low, s.ci_high]),
         hovertemplate:
           '<b>%{x}</b><br>' +
@@ -861,10 +900,10 @@
       const layout = {
         title: { text: 'Vertical Equity Analysis using Vertical Equity Indicator (VEI)', font: { size: 15 } },
         xaxis: { title: groupLabel, showgrid: false },
-        yaxis: { title: 'Ratio', zeroline: false, gridcolor: '#e2e8f0' },
+        yaxis: { title: 'Ratio', zeroline: false, gridcolor: bw ? '#d1d5db' : '#e2e8f0' },
         paper_bgcolor: 'transparent',
         plot_bgcolor: '#ffffff',
-        font: { color: '#1f2937', family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
+        font: { color: bw ? '#111827' : '#1f2937', family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
         showlegend: false,
         shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: data.med, y1: data.med,
                    line: { color: medColor, width: 1.5, dash: 'dash' } }],
@@ -911,6 +950,7 @@
     const latFieldSel = document.getElementById('latFieldSel');
     const lonFieldSel = document.getElementById('lonFieldSel');
     const runBtn = document.getElementById('runBtn');
+    const bwModeBtn = document.getElementById('bwModeBtn');
     const savePdfBtn = document.getElementById('savePdfBtn');
     const mapBtnBottom = document.getElementById('mapBtnBottom');
     const mapSection = document.getElementById('mapSection');
@@ -925,8 +965,12 @@
     let mapBounds = null;
     let mapRendered = false;
     let lastRunContext = null;
+    let lastMetricsResult = null;
+    let mapStyleMode = null;
+    let viewMode = sessionStorage.getItem('vizMode') === 'bw' ? 'bw' : 'color';
     const MAP_SOURCE_ID = 'ratio-points-source';
     const MAP_LAYER_ID = 'ratio-points-layer';
+    const MAP_NEG_LAYER_ID = 'ratio-neg-layer';
 
     // Initialize FilePond on the existing file input for a polished drag & drop UI
     if (window.FilePond) {
@@ -1010,12 +1054,27 @@
       messages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
     }
 
+    function isBWMode(){
+      return viewMode === 'bw';
+    }
+
+    function applyViewModeButtonState(){
+      bwModeBtn.textContent = `Black & White optimization: ${isBWMode() ? 'On' : 'Off'}`;
+      bwModeBtn.classList.toggle('btn-primary', !isBWMode());
+      bwModeBtn.classList.toggle('btn-secondary', isBWMode());
+      sessionStorage.setItem('vizMode', viewMode);
+    }
+
     function updateActionButtonsVisibility(hasFile){
+      bwModeBtn.classList.toggle('hidden', !hasFile);
       savePdfBtn.classList.toggle('hidden', !hasFile);
       mapBtnBottom.classList.toggle('hidden', !hasFile);
       if (!hasFile){
+        bwModeBtn.disabled = true;
         savePdfBtn.disabled = true;
         mapBtnBottom.disabled = true;
+      } else {
+        bwModeBtn.disabled = false;
       }
     }
 
@@ -1023,6 +1082,7 @@
       const hasFile = !!(fileInput.files && fileInput.files[0]);
       updateActionButtonsVisibility(hasFile);
     });
+    applyViewModeButtonState();
     updateActionButtonsVisibility(!!(fileInput.files && fileInput.files[0]));
 
     // ---- Stage 2 helpers: read header, populate selects, guess fields ----
@@ -1116,7 +1176,14 @@
 
     function ratioToColor(r){
       if (!isFinite(r)) return '#94a3b8';
-      if (r < 0) return '#ff00ff';
+      if (r < 0) return isBWMode() ? '#111111' : '#ff00ff';
+      if (isBWMode()){
+        if (r <= 0.75) return '#1f2937';
+        if (r <= 0.9) return '#475569';
+        if (r <= 1.1) return '#d1d5db';
+        if (r <= 1.4) return '#6b7280';
+        return '#111827';
+      }
       if (r <= 1){
         const t = Math.max(0, Math.min(1, (r - 0.5) / 0.5));
         const channel = Math.round(255 * t);
@@ -1152,7 +1219,8 @@
             ratio,
             sale,
             val,
-            ratioColor: ratioToColor(ratio)
+            ratioColor: ratioToColor(ratio),
+            isNegative: ratio < 0 ? 1 : 0
           }
         });
       }
@@ -1165,10 +1233,28 @@
     }
 
     function ensureMap(){
-      if (mapInstance) return mapInstance;
+      if (mapInstance && mapStyleMode === viewMode) return mapInstance;
+      if (mapInstance) {
+        mapInstance.remove();
+        mapInstance = null;
+      }
       if (!window.maplibregl){
         throw new Error('Map library failed to load. Please refresh and try again.');
       }
+      mapStyleMode = viewMode;
+      const tiles = isBWMode()
+        ? [
+            'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+            'https://b.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+            'https://c.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+            'https://d.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'
+          ]
+        : [
+            'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+            'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+            'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+            'https://d.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png'
+          ];
       mapInstance = new maplibregl.Map({
         container: 'ratioMap',
         style: {
@@ -1176,12 +1262,7 @@
           sources: {
             cartoDark: {
               type: 'raster',
-              tiles: [
-                'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-                'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-                'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-                'https://d.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png'
-              ],
+              tiles,
               tileSize: 256,
               attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
             }
@@ -1218,14 +1299,32 @@
             paint: {
               'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2.5, 8, 5, 12, 7],
               'circle-color': ['get', 'ratioColor'],
-              'circle-stroke-color': '#111827',
-              'circle-stroke-width': 0.9,
+              'circle-stroke-color': isBWMode() ? '#000000' : '#111827',
+              'circle-stroke-width': isBWMode() ? 1.2 : 0.9,
               'circle-opacity': 0.82
-            }
+            },
+            filter: isBWMode() ? ['==', ['get', 'isNegative'], 0] : ['>=', ['get', 'isNegative'], 0]
           });
 
+          if (isBWMode()) {
+            map.addLayer({
+              id: MAP_NEG_LAYER_ID,
+              type: 'symbol',
+              source: MAP_SOURCE_ID,
+              filter: ['==', ['get', 'isNegative'], 1],
+              layout: {
+                'text-field': '✕',
+                'text-size': 13,
+                'text-allow-overlap': true
+              },
+              paint: {
+                'text-color': '#000000'
+              }
+            });
+          }
+
           const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
-          map.on('mouseenter', MAP_LAYER_ID, (e) => {
+          const showPopup = (e) => {
             map.getCanvas().style.cursor = 'pointer';
             const feature = e.features && e.features[0];
             if (!feature) return;
@@ -1241,11 +1340,17 @@
                 `<div><b>${valField}:</b> ${formatCurrency(val)}</div>`
               )
               .addTo(map);
-          });
-          map.on('mouseleave', MAP_LAYER_ID, () => {
+          };
+          const hidePopup = () => {
             map.getCanvas().style.cursor = '';
             popup.remove();
-          });
+          };
+          map.on('mouseenter', MAP_LAYER_ID, showPopup);
+          map.on('mouseleave', MAP_LAYER_ID, hidePopup);
+          if (isBWMode()) {
+            map.on('mouseenter', MAP_NEG_LAYER_ID, showPopup);
+            map.on('mouseleave', MAP_NEG_LAYER_ID, hidePopup);
+          }
         }
         fitMapToData();
       }
@@ -1392,7 +1497,19 @@
       }
     }
 
+    function toggleViewMode(){
+      viewMode = isBWMode() ? 'color' : 'bw';
+      applyViewModeButtonState();
+      if (lastMetricsResult) {
+        renderVEIChart(lastMetricsResult);
+      }
+      if (mapRendered) {
+        tryBuildMap(true);
+      }
+    }
+
     runBtn.addEventListener('click', run);
+    bwModeBtn.addEventListener('click', toggleViewMode);
     savePdfBtn.addEventListener('click', exportResultsToPDF);
     mapBtnBottom.addEventListener('click', revealMapSection);
     showMapBtn.addEventListener('click', () => tryBuildMap(false));

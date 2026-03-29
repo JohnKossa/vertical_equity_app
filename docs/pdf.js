@@ -114,6 +114,34 @@ async function generatePDF(config) {
 
     if (section.type === 'chart') {
       cursorY = await drawChartSection(doc, section, cursorY);
+      continue;
+    }
+
+    if (section.type === 'image') {
+      const title = typeof section.title === 'string' ? section.title : '';
+      const dataUrl = typeof section.dataUrl === 'string' ? section.dataUrl : '';
+      if (title) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(PAGE.titleFontSize);
+        cursorY = ensureSpace(doc, cursorY, 10);
+        doc.text(title, PAGE.margin, cursorY, { maxWidth: PAGE.usableWidth });
+        cursorY += 8;
+      }
+      if (!dataUrl) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(PAGE.bodyFontSize);
+        cursorY = ensureSpace(doc, cursorY, 7);
+        doc.text('Image unavailable.', PAGE.margin, cursorY, { maxWidth: PAGE.usableWidth });
+        cursorY += 8;
+        continue;
+      }
+      const imgW = Math.max(1, Number(section.imageWidth || 1200));
+      const imgH = Math.max(1, Number(section.imageHeight || 700));
+      const targetWidth = PAGE.usableWidth;
+      const targetHeight = targetWidth * (imgH / imgW);
+      cursorY = ensureSpace(doc, cursorY, targetHeight);
+      doc.addImage(dataUrl, 'PNG', PAGE.margin, cursorY, targetWidth, targetHeight);
+      cursorY += targetHeight + 8;
     }
   }
 
