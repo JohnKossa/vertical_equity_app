@@ -325,14 +325,14 @@
       <div class="results-header">
         <h2>Results</h2>
         <div class="results-actions">
-          <button id="savePdfBtn" type="button" class="btn btn-secondary" disabled>Save to PDF</button>
+          <button id="savePdfBtn" type="button" class="btn btn-secondary hidden" disabled>Save to PDF</button>
         </div>
       </div>
       <div id="results">
         <div class="results-empty" aria-live="polite">Nothing yet! Drop a CSV above and click Compute metrics.</div>
       </div>
       <div class="results-footer-actions">
-        <button id="mapBtnBottom" type="button" class="btn btn-secondary" disabled>Put It On A Map</button>
+        <button id="mapBtnBottom" type="button" class="btn btn-secondary hidden" disabled>Put It On A Map</button>
       </div>
     </section>
 
@@ -965,6 +965,7 @@
         const dt = new DataTransfer();
         dt.items.add(item.file);
         fileInput.files = dt.files; // keep existing run() flow
+        updateActionButtonsVisibility(true);
         if (typeof showMessages === 'function') {
           showMessages([`File selected: ${item.file.name}`]);
         }
@@ -998,6 +999,7 @@
       pond.on('removefile', () => {
         const dt = new DataTransfer();
         fileInput.files = dt.files; // clear
+        updateActionButtonsVisibility(false);
         if (typeof showMessages === 'function') {
           showMessages([`File removed. Please select a CSV.`]);
         }
@@ -1007,6 +1009,21 @@
     function showMessages(msgs){
       messages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
     }
+
+    function updateActionButtonsVisibility(hasFile){
+      savePdfBtn.classList.toggle('hidden', !hasFile);
+      mapBtnBottom.classList.toggle('hidden', !hasFile);
+      if (!hasFile){
+        savePdfBtn.disabled = true;
+        mapBtnBottom.disabled = true;
+      }
+    }
+
+    fileInput.addEventListener('change', () => {
+      const hasFile = !!(fileInput.files && fileInput.files[0]);
+      updateActionButtonsVisibility(hasFile);
+    });
+    updateActionButtonsVisibility(!!(fileInput.files && fileInput.files[0]));
 
     // ---- Stage 2 helpers: read header, populate selects, guess fields ----
     function readHeader(file){
