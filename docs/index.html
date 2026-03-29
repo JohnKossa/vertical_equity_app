@@ -817,6 +817,13 @@
         if (mapIsVisible) {
           const snap = await captureMapSnapshot();
           const mapDataUrl = snap.dataUrl;
+          if (!mapDataUrl) {
+            console.warn('[pdf-map] map snapshot empty; diagnostics:', snap.diagnostics || {});
+            showMessages([
+              'Map snapshot was empty during PDF export. Open the browser console and look for "[pdf-map] snapshot diagnostics".',
+              'This is often caused by cross-origin tile restrictions or a map render timing issue.'
+            ]);
+          }
           const mapMeta = [
             `Latitude field: ${latFieldSel.value || '—'}`,
             `Longitude field: ${lonFieldSel.value || '—'}`,
@@ -855,7 +862,19 @@
     }
 
     async function captureMapSnapshot(){
-      if (!mapInstance) return { dataUrl: '', width: 1200, height: 700 };
+      if (!mapInstance) return { dataUrl: '', width: 1200, height: 700, diagnostics: { reason: 'no_map_instance' } };
+      const diagnostics = {
+        styleLoadedBefore: false,
+        mapLoadedBefore: false,
+        canvasWidth: 0,
+        canvasHeight: 0,
+        dataUrlLength: 0,
+        error: null
+      };
+      try {
+        diagnostics.styleLoadedBefore = !!mapInstance.isStyleLoaded();
+        diagnostics.mapLoadedBefore = !!mapInstance.loaded();
+      } catch (_) {}
       try { mapInstance.resize(); } catch (_) {}
       await new Promise((resolve) => requestAnimationFrame(resolve));
       try {
@@ -872,10 +891,18 @@
         });
       } catch (_) {}
       const canvas = mapInstance.getCanvas();
-      if (!canvas) return { dataUrl: '', width: 1200, height: 700 };
+      if (!canvas) {
+        diagnostics.reason = 'no_canvas';
+        console.warn('[pdf-map] snapshot diagnostics', diagnostics);
+        return { dataUrl: '', width: 1200, height: 700, diagnostics };
+      }
+      diagnostics.canvasWidth = canvas.width || 0;
+      diagnostics.canvasHeight = canvas.height || 0;
       let dataUrl = '';
-      try { dataUrl = canvas.toDataURL('image/png'); } catch (_) {}
-      return { dataUrl, width: canvas.width || 1200, height: canvas.height || 700 };
+      try { dataUrl = canvas.toDataURL('image/png'); } catch (e) { diagnostics.error = String(e && e.message ? e.message : e); }
+      diagnostics.dataUrlLength = dataUrl ? dataUrl.length : 0;
+      console.info('[pdf-map] snapshot diagnostics', diagnostics);
+      return { dataUrl, width: canvas.width || 1200, height: canvas.height || 700, diagnostics };
     }
 
     // ---------- VEI Chart ----------
@@ -1277,6 +1304,19 @@
       return `rgb(255, ${gb}, ${gb})`;
     }
 
+    function ratioToStrokeColor(r){
+      if (!isFinite(r)) return '#334155';
+      if (r < 0) return isBWMode() ? '#000000' : '#8b008b';
+      if (isBWMode()){
+        if (r < 0.9) return '#1f2937';
+        if (r > 1.1) return '#111827';
+        return '#475569';
+      }
+      if (r < 0.9) return '#1d4ed8';
+      if (r > 1.1) return '#b91c1c';
+      return '#475569';
+    }
+
     function buildMapPoints(rows, saleField, valField, latField, lonField){
       const features = [];
       let invalidCoords = 0;
@@ -1307,6 +1347,7 @@
             sale,
             val,
             ratioColor: ratioToColor(ratio),
+            ratioStrokeColor: ratioToStrokeColor(ratio),
             isNegative: ratio < 0 ? 1 : 0,
             shapeType
           }
@@ -1341,6 +1382,7 @@
         preserveDrawingBuffer: true,
         style: {
           version: 8,
+          glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
           sources: {
             cartoDark: {
               type: 'raster',
@@ -1379,10 +1421,10 @@
             type: 'circle',
             source: MAP_SOURCE_ID,
             paint: {
-              'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 1.8, 8, 3.6, 12, 5],
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 1.3, 8, 2.6, 12, 3.8],
               'circle-color': ['get', 'ratioColor'],
-              'circle-stroke-color': isBWMode() ? '#000000' : '#111827',
-              'circle-stroke-width': isBWMode() ? 1.2 : 0.9,
+              'circle-stroke-color': ['get', 'ratioStrokeColor'],
+              'circle-stroke-width': isBWMode() ? 1.1 : 0.85,
               'circle-opacity': 0.82
             },
             filter: ['==', ['get', 'shapeType'], 'circle']
@@ -1396,9 +1438,10 @@
             layout: {
               'text-field': '△',
               'text-size': 11,
+              'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
               'text-allow-overlap': true
             },
-            paint: { 'text-color': ['get', 'ratioColor'] }
+            paint: { 'text-color': ['get', 'ratioColor'], 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
           });
 
           map.addLayer({
@@ -1409,9 +1452,10 @@
             layout: {
               'text-field': '▽',
               'text-size': 11,
+              'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
               'text-allow-overlap': true
             },
-            paint: { 'text-color': ['get', 'ratioColor'] }
+            paint: { 'text-color': ['get', 'ratioColor'], 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
           });
 
           map.addLayer({
@@ -1422,9 +1466,10 @@
             layout: {
               'text-field': '✕',
               'text-size': 11,
+              'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
               'text-allow-overlap': true
             },
-            paint: { 'text-color': isBWMode() ? '#000000' : '#ff00ff' }
+            paint: { 'text-color': isBWMode() ? '#000000' : '#ff00ff', 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
           });
 
           const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
