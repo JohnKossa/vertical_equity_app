@@ -355,6 +355,7 @@
         <div class="results-empty" aria-live="polite">Nothing yet! Drop a CSV above and click Compute metrics.</div>
       </div>
       <div class="results-footer-actions">
+        <button id="savePdfBtnBottom" type="button" class="btn btn-secondary hidden" disabled>Save to PDF</button>
         <button id="bwModeBtn" type="button" class="btn btn-primary hidden" disabled>Black &amp; White optimization: Off</button>
         <button id="mapBtnBottom" type="button" class="btn btn-secondary hidden" disabled>Put It On A Map</button>
       </div>
@@ -766,15 +767,19 @@
       lastMetricsResult = data;
       renderVEIChart(data);
       if (savePdfBtn) savePdfBtn.disabled = false;
+      if (savePdfBtnBottom) savePdfBtnBottom.disabled = false;
     }
 
     async function exportResultsToPDF() {
       const resultsNode = document.getElementById('results');
       if (!resultsNode || resultsNode.querySelector('.results-empty')) return;
 
-      const saveLabel = savePdfBtn.textContent;
+      const saveLabelTop = savePdfBtn.textContent;
+      const saveLabelBottom = savePdfBtnBottom.textContent;
       savePdfBtn.disabled = true;
+      savePdfBtnBottom.disabled = true;
       savePdfBtn.textContent = 'Preparing PDF…';
+      savePdfBtnBottom.textContent = 'Preparing PDF…';
 
       try {
         if (typeof window.generatePDF !== 'function') {
@@ -810,9 +815,8 @@
         const mapIsVisible = mapSection && !mapSection.classList.contains('hidden') &&
           mapShell && !mapShell.classList.contains('hidden') && mapRendered && mapInstance;
         if (mapIsVisible) {
-          try { mapInstance.resize(); } catch (_) {}
-          const mapCanvas = mapInstance.getCanvas();
-          const mapDataUrl = mapCanvas ? mapCanvas.toDataURL('image/png') : '';
+          const snap = await captureMapSnapshot();
+          const mapDataUrl = snap.dataUrl;
           const mapMeta = [
             `Latitude field: ${latFieldSel.value || '—'}`,
             `Longitude field: ${lonFieldSel.value || '—'}`,
@@ -825,8 +829,8 @@
             type: 'image',
             title: 'Ratio Map',
             dataUrl: mapDataUrl,
-            imageWidth: mapCanvas ? mapCanvas.width : 1200,
-            imageHeight: mapCanvas ? mapCanvas.height : 700
+            imageWidth: snap.width,
+            imageHeight: snap.height
           });
           sections.push({
             type: 'text',
@@ -844,8 +848,34 @@
         showMessages([`PDF export failed: ${err && err.message ? err.message : err}`]);
       } finally {
         savePdfBtn.disabled = false;
-        savePdfBtn.textContent = saveLabel;
+        savePdfBtnBottom.disabled = false;
+        savePdfBtn.textContent = saveLabelTop;
+        savePdfBtnBottom.textContent = saveLabelBottom;
       }
+    }
+
+    async function captureMapSnapshot(){
+      if (!mapInstance) return { dataUrl: '', width: 1200, height: 700 };
+      try { mapInstance.resize(); } catch (_) {}
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      try {
+        await new Promise((resolve) => {
+          let settled = false;
+          const done = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          };
+          const timeout = setTimeout(done, 700);
+          mapInstance.once('idle', () => { clearTimeout(timeout); done(); });
+          try { mapInstance.triggerRepaint(); } catch (_) {}
+        });
+      } catch (_) {}
+      const canvas = mapInstance.getCanvas();
+      if (!canvas) return { dataUrl: '', width: 1200, height: 700 };
+      let dataUrl = '';
+      try { dataUrl = canvas.toDataURL('image/png'); } catch (_) {}
+      return { dataUrl, width: canvas.width || 1200, height: canvas.height || 700 };
     }
 
     // ---------- VEI Chart ----------
@@ -976,6 +1006,7 @@
     const runBtn = document.getElementById('runBtn');
     const bwModeBtn = document.getElementById('bwModeBtn');
     const savePdfBtn = document.getElementById('savePdfBtn');
+    const savePdfBtnBottom = document.getElementById('savePdfBtnBottom');
     const mapBtnBottom = document.getElementById('mapBtnBottom');
     const mapSection = document.getElementById('mapSection');
     const showMapBtn = document.getElementById('showMapBtn');
@@ -996,6 +1027,8 @@
     const MAP_SOURCE_ID = 'ratio-points-source';
     const MAP_LAYER_ID = 'ratio-points-layer';
     const MAP_NEG_LAYER_ID = 'ratio-neg-layer';
+    const MAP_UP_LAYER_ID = 'ratio-up-layer';
+    const MAP_DOWN_LAYER_ID = 'ratio-down-layer';
 
     // Initialize FilePond on the existing file input for a polished drag & drop UI
     if (window.FilePond) {
@@ -1093,10 +1126,12 @@
     function updateActionButtonsVisibility(hasFile){
       bwModeBtn.classList.toggle('hidden', !hasFile);
       savePdfBtn.classList.toggle('hidden', !hasFile);
+      savePdfBtnBottom.classList.toggle('hidden', !hasFile);
       mapBtnBottom.classList.toggle('hidden', !hasFile);
       if (!hasFile){
         bwModeBtn.disabled = true;
         savePdfBtn.disabled = true;
+        savePdfBtnBottom.disabled = true;
         mapBtnBottom.disabled = true;
         mapLegend.classList.add('hidden');
       } else {
@@ -1196,16 +1231,16 @@
       if (!mapLegend) return;
       const rows = isBWMode()
         ? [
-            ['#d1d5db', 'Ratio near 1.0'],
-            ['#6b7280', 'Ratio moderately above/below 1.0'],
-            ['#111827', 'Ratio far above/below 1.0'],
-            ['#ffffff', '✕ marks negative ratios']
+            ['#d1d5db', 'Circle: ratio 0.9 to 1.1 (inclusive)'],
+            ['#6b7280', '▽ triangle: ratio 0 to < 0.9'],
+            ['#111827', '△ triangle: ratio > 1.1'],
+            ['#ffffff', '✕ mark: ratio < 0']
           ]
         : [
-            ['rgb(0,0,255)', 'Low ratio (near 0.5)'],
-            ['#ffffff', 'Ratio near 1.0'],
-            ['rgb(255,0,0)', 'High ratio (near 2.0)'],
-            ['#ff00ff', 'Negative ratio (data issue flag)']
+            ['#ffffff', 'Circle + white: ratio 0.9 to 1.1 (inclusive)'],
+            ['rgb(0,0,255)', '▽ triangle + blue: ratio 0 to < 0.9'],
+            ['rgb(255,0,0)', '△ triangle + red: ratio > 1.1'],
+            ['#ff00ff', '✕ mark + magenta: ratio < 0']
           ];
       mapLegend.innerHTML = `
         <div><b>Map legend</b></div>
@@ -1260,6 +1295,10 @@
           continue;
         }
         const ratio = val / sale;
+        let shapeType = 'circle';
+        if (ratio < 0) shapeType = 'neg';
+        else if (ratio < 0.9) shapeType = 'down';
+        else if (ratio > 1.1) shapeType = 'up';
         features.push({
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [lon, lat] },
@@ -1268,7 +1307,8 @@
             sale,
             val,
             ratioColor: ratioToColor(ratio),
-            isNegative: ratio < 0 ? 1 : 0
+            isNegative: ratio < 0 ? 1 : 0,
+            shapeType
           }
         });
       }
@@ -1290,21 +1330,15 @@
         throw new Error('Map library failed to load. Please refresh and try again.');
       }
       mapStyleMode = viewMode;
-      const tiles = isBWMode()
-        ? [
-            'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-            'https://b.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-            'https://c.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-            'https://d.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'
-          ]
-        : [
-            'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-            'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-            'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-            'https://d.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png'
-          ];
+      const tiles = [
+        'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+        'https://d.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'
+      ];
       mapInstance = new maplibregl.Map({
         container: 'ratioMap',
+        preserveDrawingBuffer: true,
         style: {
           version: 8,
           sources: {
@@ -1351,25 +1385,47 @@
               'circle-stroke-width': isBWMode() ? 1.2 : 0.9,
               'circle-opacity': 0.82
             },
-            filter: isBWMode() ? ['==', ['get', 'isNegative'], 0] : ['>=', ['get', 'isNegative'], 0]
+            filter: ['==', ['get', 'shapeType'], 'circle']
           });
 
-          if (isBWMode()) {
-            map.addLayer({
-              id: MAP_NEG_LAYER_ID,
-              type: 'symbol',
-              source: MAP_SOURCE_ID,
-              filter: ['==', ['get', 'isNegative'], 1],
-              layout: {
-                'text-field': '✕',
-                'text-size': 11,
-                'text-allow-overlap': true
-              },
-              paint: {
-                'text-color': '#000000'
-              }
-            });
-          }
+          map.addLayer({
+            id: MAP_UP_LAYER_ID,
+            type: 'symbol',
+            source: MAP_SOURCE_ID,
+            filter: ['==', ['get', 'shapeType'], 'up'],
+            layout: {
+              'text-field': '△',
+              'text-size': 11,
+              'text-allow-overlap': true
+            },
+            paint: { 'text-color': ['get', 'ratioColor'] }
+          });
+
+          map.addLayer({
+            id: MAP_DOWN_LAYER_ID,
+            type: 'symbol',
+            source: MAP_SOURCE_ID,
+            filter: ['==', ['get', 'shapeType'], 'down'],
+            layout: {
+              'text-field': '▽',
+              'text-size': 11,
+              'text-allow-overlap': true
+            },
+            paint: { 'text-color': ['get', 'ratioColor'] }
+          });
+
+          map.addLayer({
+            id: MAP_NEG_LAYER_ID,
+            type: 'symbol',
+            source: MAP_SOURCE_ID,
+            filter: ['==', ['get', 'shapeType'], 'neg'],
+            layout: {
+              'text-field': '✕',
+              'text-size': 11,
+              'text-allow-overlap': true
+            },
+            paint: { 'text-color': isBWMode() ? '#000000' : '#ff00ff' }
+          });
 
           const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
           const showPopup = (e) => {
@@ -1395,10 +1451,12 @@
           };
           map.on('mouseenter', MAP_LAYER_ID, showPopup);
           map.on('mouseleave', MAP_LAYER_ID, hidePopup);
-          if (isBWMode()) {
-            map.on('mouseenter', MAP_NEG_LAYER_ID, showPopup);
-            map.on('mouseleave', MAP_NEG_LAYER_ID, hidePopup);
-          }
+          map.on('mouseenter', MAP_UP_LAYER_ID, showPopup);
+          map.on('mouseleave', MAP_UP_LAYER_ID, hidePopup);
+          map.on('mouseenter', MAP_DOWN_LAYER_ID, showPopup);
+          map.on('mouseleave', MAP_DOWN_LAYER_ID, hidePopup);
+          map.on('mouseenter', MAP_NEG_LAYER_ID, showPopup);
+          map.on('mouseleave', MAP_NEG_LAYER_ID, hidePopup);
         }
         fitMapToData();
       }
@@ -1564,6 +1622,7 @@
     runBtn.addEventListener('click', run);
     bwModeBtn.addEventListener('click', toggleViewMode);
     savePdfBtn.addEventListener('click', exportResultsToPDF);
+    savePdfBtnBottom.addEventListener('click', exportResultsToPDF);
     mapBtnBottom.addEventListener('click', revealMapSection);
     showMapBtn.addEventListener('click', () => tryBuildMap(false));
     resetMapExtentsBtn.addEventListener('click', fitMapToData);
