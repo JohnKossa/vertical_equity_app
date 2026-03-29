@@ -824,28 +824,18 @@
               'This is often caused by cross-origin tile restrictions or a map render timing issue.'
             ]);
           }
-          const mapMeta = [
-            `Latitude field: ${latFieldSel.value || '—'}`,
-            `Longitude field: ${lonFieldSel.value || '—'}`,
-            `Sale field: ${(lastRunContext && lastRunContext.saleField) || '—'}`,
-            `Valuation field: ${(lastRunContext && lastRunContext.valField) || '—'}`
-          ];
-          sections.push({ type: 'text', content: 'Map view details', isTitle: true, pageBreakBefore: true });
-          mapMeta.forEach((line) => sections.push({ type: 'text', content: line }));
+          sections.push({ type: 'text', content: 'Ratio Map', isTitle: true, pageBreakBefore: true });
           sections.push({
             type: 'image',
-            title: 'Ratio Map',
+            title: '',
             dataUrl: mapDataUrl,
             imageWidth: snap.width,
             imageHeight: snap.height,
             imageFormat: snap.format || 'PNG'
           });
-          sections.push({
-            type: 'text',
-            content: isBWMode()
-              ? 'Legend (B/W optimized): darker fills = farther from ratio 1.0; X marks denote negative ratios.'
-              : 'Legend: blue = ratio below 1.0, white = around 1.0, red = above 1.0, magenta = negative ratio.'
-          });
+          const legendRows = getMapLegendRows();
+          sections.push({ type: 'text', content: 'Map legend', isTitle: true });
+          legendRows.forEach(([, label]) => sections.push({ type: 'text', content: `• ${label}` }));
         }
 
         await window.generatePDF({
@@ -1266,7 +1256,16 @@
 
     function renderMapLegend(){
       if (!mapLegend) return;
-      const rows = isBWMode()
+      const rows = getMapLegendRows();
+      mapLegend.innerHTML = `
+        <div><b>Map legend</b></div>
+        ${rows.map(([c, label]) => `<div class="legend-row"><span class="legend-swatch" style="background:${c}"></span><span>${label}</span></div>`).join('')}
+      `;
+      mapLegend.classList.remove('hidden');
+    }
+
+    function getMapLegendRows(){
+      return isBWMode()
         ? [
             ['#1f2937', 'Low assessments: ratio 0 to < 0.9 (dark fill, light outline)'],
             ['#d1d5db', 'Near target: ratio 0.9 to 1.1 (light gray)'],
@@ -1279,11 +1278,6 @@
             ['rgb(255,0,0)', 'High assessments: ratio > 1.1'],
             ['#ff00ff', 'Negative ratio: < 0']
           ];
-      mapLegend.innerHTML = `
-        <div><b>Map legend</b></div>
-        ${rows.map(([c, label]) => `<div class="legend-row"><span class="legend-swatch" style="background:${c}"></span><span>${label}</span></div>`).join('')}
-      `;
-      mapLegend.classList.remove('hidden');
     }
 
     function setupMapFieldSelectorsFromRows(rows){
