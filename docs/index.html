@@ -60,17 +60,18 @@
     }
 
     .row { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center; }
-    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     label { font-weight: 600; color: #0f172a; }
     input[type="text"], select {
       padding: 10px 12px;
-      min-width: 260px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: #fff;
       color: var(--text);
       font: inherit;
     }
+    input[type="text"] { min-width: 260px; }
+    select { width: 100%; min-width: 0; }
     .note { font-size: 0.92rem; color: var(--muted); }
 
     table { border-collapse: collapse; width: 100%; margin-top: 16px; }
@@ -84,6 +85,8 @@
     details { margin-top: 12px; }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    #stage2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    #stage2 label { font-size: 0.95rem; line-height: 1.25; }
     .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2f7; }
     .hidden { display: none; }
     .full { grid-column: 1 / -1; }
