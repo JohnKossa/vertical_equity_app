@@ -6,7 +6,7 @@
   <title>Vertical Equity Studies</title>
   <style>
     :root {
-      --bg: #f4f7fb;
+      --bg: #ffffff;
       --surface: #ffffff;
       --surface-soft: #f8fafc;
       --text: #1f2937;
@@ -91,8 +91,23 @@
     .hidden { display: none; }
     .full { grid-column: 1 / -1; }
 
-    .filepond--root { width: 100%; max-width: 100%; min-height: 160px; position: relative; }
-    .filepond--panel-root { border-radius: 10px; padding-bottom: 48px; border: 1px solid var(--line); background: #fff; }
+    .filepond--root {
+      width: 100%;
+      max-width: 100%;
+      min-height: 260px;
+      position: relative;
+      margin-top: 4px;
+    }
+    .filepond--panel-root {
+      border-radius: 16px;
+      border: 2px dashed #cbd5e1;
+      background: #fff;
+    }
+    .filepond--drip { background: transparent; opacity: 0 !important; }
+    .filepond--item-panel,
+    .filepond--panel-top,
+    .filepond--panel-center,
+    .filepond--panel-bottom { background-color: transparent !important; }
 
     .drawer { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
     .drawer-summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 650; }
@@ -130,8 +145,30 @@
     .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(30,64,175,.25); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .filepond--drop-label { height: 100%; display: grid; place-items: center; text-align: center; padding: 0 12px; color: var(--muted); }
-    .filepond--root .pond-note { position: absolute; left: 12px; right: 12px; bottom: 10px; color: var(--muted); font-size: 12px; line-height: 1.35; text-align: center; pointer-events: none; }
+    .filepond--drop-label {
+      height: 100%;
+      min-height: 260px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+    }
+    .filepond--drop-label-inner { display: grid; gap: 6px; place-items: center; }
+    .filepond--drop-title { font-size: 1.35rem; font-weight: 600; color: #334155; }
+    .filepond--drop-subtitle { font-size: 0.95rem; color: #64748b; }
+    .filepond--label-action { font-weight: 700; }
+    .filepond--root .pond-note {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      text-align: center;
+      pointer-events: none;
+    }
 
     #results { min-height: 120px; }
     .results-empty {
@@ -780,7 +817,12 @@
           resolve(type);
         }),
         labelIdle: `
-          <span class="filepond--drop-label">Drag & Drop your CSV or&nbsp;<span class="filepond--label-action">Browse</span></span>
+          <span class="filepond--drop-label">
+            <span class="filepond--drop-label-inner">
+              <span class="filepond--drop-title">Drop your CSV file here</span>
+              <span class="filepond--drop-subtitle">or&nbsp;<span class="filepond--label-action">Browse</span></span>
+            </span>
+          </span>
           <span class="pond-note">Your data never leaves your computer — files are read and processed entirely in your browser.</span>
         `,
       });
