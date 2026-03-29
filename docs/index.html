@@ -6,171 +6,188 @@
   <title>Vertical Equity Studies</title>
   <style>
     :root {
-      /* from first tag */
-      color-scheme: light dark;
-      --maxw: 980px;
-      --pad: 12px;
-      --gap: 10px;
-      /* from second tag */
-      --bg:#0b1020; --fg:#eaf0ff; --muted:#a8b3d1; --btn:#8ab4ff; --btn2:#2dd4bf; --card:#121a33;
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #1f2937;
+      --muted: #5b6472;
+      --line: #d9e1ea;
+      --accent: #1d4ed8;
+      --accent-strong: #1e40af;
+      --success: #0f766e;
+      --maxw: 1100px;
+      --gap: 12px;
+      --radius: 12px;
+      color-scheme: light;
     }
 
-    /* Resets and base */
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif; color: var(--fg); background-color: var(--bg); }
-
-    /* Fixed gradient backdrop */
-    body::before {
-      content: "";
-      position: fixed; inset: 0; pointer-events: none; z-index: -1;
-      background: radial-gradient(1200px 600px at 20% -10%, #182244 0, #0b1020 55%, #0b1020 100%) no-repeat;
-      background-position: 0 0;
+    body {
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.45;
     }
 
-    /* Layout wrappers */
     .wrap { min-height: 100%; display: flex; flex-direction: column; }
 
-    /* Header (preserve border-bottom and new layout) */
     header {
-      padding: 20px 16px; /* overrides first tag’s var(--pad) */
-      display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
-      max-width: 1100px; margin: 0 auto; width: 100%;
-      border-bottom: 1px solid #ccc; /* from first tag */
+      padding: 24px 16px;
+      max-width: var(--maxw);
+      margin: 0 auto;
+      width: 100%;
+      border-bottom: 1px solid var(--line);
     }
-    header h1 { font-size: 40px; }
-    header .hero { display: block; grid-template-columns: none !important; }
-    header a.logo { font-weight: 700; letter-spacing: .2px; text-decoration: none; color: var(--fg); }
+    header h1 { margin: 0; font-size: clamp(2rem, 3.8vw, 2.5rem); color: #0f172a; }
+    header .hero { margin-top: 8px; color: var(--muted); font-weight: 500; }
 
-    /* Main layout: keep max-width + centering */
     main {
-      flex: 1; display: grid; place-items: center; padding: 30px 16px; /* overrides first tag’s padding */
-      max-width: var(--maxw); margin: 0 auto; /* from first tag */
+      padding: 28px 16px 40px;
+      max-width: var(--maxw);
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      gap: 20px;
     }
 
-    /* Form rows and fields (from first tag) */
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+      padding: 18px;
+    }
+
     .row { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center; }
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    label { font-weight: 600; }
-    input[type="text"] { padding: 8px; min-width: 260px; }
-    input[type="file"] { padding: 6px 0; }
-    .note { font-size: 0.9em; color: #666; }
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    label { font-weight: 600; color: #0f172a; }
+    input[type="text"], select {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+    input[type="text"] { min-width: 260px; }
+    select { width: 100%; min-width: 0; }
+    .note { font-size: 0.92rem; color: var(--muted); }
 
-    /* Tables (from first tag) */
     table { border-collapse: collapse; width: 100%; margin-top: 16px; }
-    th, td { border: 1px solid #999; padding: 8px; text-align: left; }
-    th { background: rgba(0,0,0,.05); }
+    th, td { border: 1px solid var(--line); padding: 10px 11px; text-align: left; vertical-align: top; }
+    th { background: var(--surface-soft); color: #0f172a; font-weight: 650; }
 
-    /* Utilities (from first tag) */
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .warn { color: #b45309; }
-    .error { color: #b91c1c; }
-    .muted { color: #666; }
+    .error { color: #b91c1c; font-weight: 600; }
+    .muted { color: var(--muted); }
     details { margin-top: 12px; }
 
-    /* Generic grid used in forms (from first tag) */
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eee; }
+    #stage2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    #stage2 label { font-size: 0.95rem; line-height: 1.25; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2f7; }
     .hidden { display: none; }
     .full { grid-column: 1 / -1; }
 
-    /* FilePond base prominence */
-    .filepond--root { width: 100%; max-width: 100%; min-height: 160px; position: relative; }
-    .filepond--panel-root { border-radius: 10px; padding-bottom: 48px; }
+    .filepond--root {
+      width: 100%;
+      max-width: 100%;
+      min-height: 260px;
+      position: relative;
+      margin-top: 4px;
+    }
+    .filepond--panel-root {
+      border-radius: 16px;
+      border: 2px dashed #cbd5e1;
+      background: #fff !important;
+    }
+    .filepond--panel-root,
+    .filepond--panel-root * { background-color: #fff; }
+    .filepond--drip { background: transparent; opacity: 0 !important; }
+    .filepond--item-panel,
+    .filepond--panel-top,
+    .filepond--panel-center,
+    .filepond--panel-bottom { background-color: transparent !important; }
 
-    /* Drawer styles (from first tag) */
-    .drawer { border: 1px solid #223055aa; border-radius: 10px; background: var(--card); }
-    .drawer-summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    .drawer { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .drawer-summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 650; }
     .drawer-summary::-webkit-details-marker { display: none; }
-    .drawer[open] .drawer-summary { border-bottom: 1px solid #223055aa; }
+    .drawer[open] .drawer-summary { border-bottom: 1px solid var(--line); background: var(--surface-soft); }
     .drawer-content { padding: 12px 14px; }
     .drawer-hint { color: var(--muted); font-weight: 400; font-size: 0.9em; }
-    /* When the drawer is CLOSED, stack title and hint vertically */
     .drawer:not([open]) .drawer-summary { flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }
-    .drawer:not([open]) .drawer-hint { margin-top: 2px; }
 
-    /* Hero + cards (from second tag) */
-    main .hero { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1.2fr 1fr; gap: 26px; align-items: center; }
-    .hero h1 { margin: 0 0 10px; font-size: clamp(28px, 4.4vw, 46px); line-height: 1.1; }
-    .hero p { margin: 0; color: var(--muted); font-size: clamp(14px, 1.6vw, 18px); }
-    .cta { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
-    .cta a { display: inline-block; padding: 10px 14px; border-radius: 10px; text-decoration: none; font-weight: 600; }
-    .cta a.primary { background: var(--btn); color: #081428; }
-    .cta a.secondary { background: var(--btn2); color: #051c17; }
-    .card { background: var(--card); border: 1px solid #223055aa; border-radius: 14px; padding: 14px; }
+    .results-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .results-header h2 { margin: 0; }
 
-    /* Features grid (second .grid definition; must remain AFTER generic grid) */
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 22px; }
-    .feat h3 { margin: 0 0 6px; font-size: 16px; }
-    .feat p { margin: 0; color: var(--muted); font-size: 14px; }
-
-    /* Footer */
-    footer { padding: 18px 16px; color: var(--muted); font-size: 12px; text-align: center; }
-
-    /* Responsive adjustments */
-    @media (max-width: 900px) {
-      main .hero { grid-template-columns: 1fr; }
-      .grid { grid-template-columns: 1fr; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 14px; border-radius: 10px; border: 1px solid transparent;
+      font: inherit; font-weight: 650; cursor: pointer; transition: 0.15s ease;
     }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover, .btn-primary:focus-visible { background: var(--accent-strong); text-decoration: none; }
+    .btn-secondary { background: #fff; color: var(--accent-strong); border-color: var(--accent); }
+    .btn-secondary:hover, .btn-secondary:focus-visible { background: #eef4ff; text-decoration: none; }
 
-    /* Link styling */
-    a { color: inherit; text-decoration-color: currentColor; }
-    a:visited { color: inherit; }
+    #runBtn.primary { width: 100%; padding: 12px 16px; font-size: 1rem; }
+
+    footer { padding: 18px 16px 24px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    a { color: var(--accent-strong); }
     a:hover, a:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 
-    /* Visually hidden, accessible text */
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-    /* Loading overlay + misc */
-    #loadingOverlay { position: fixed; inset: 0; display: none; place-items: center; z-index: 9999; background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); }
-    #loadingOverlay .box { background: var(--card); color: var(--fg); border: 1px solid #223055aa; border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; gap: 12px; }
-    .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); border-top-color: var(--btn); animation: spin 0.8s linear infinite; }
+    #loadingOverlay { position: fixed; inset: 0; display: none; place-items: center; z-index: 9999; background: rgba(15,23,42,0.28); backdrop-filter: blur(1px); }
+    #loadingOverlay .box { background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; gap: 12px; }
+    .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(30,64,175,.25); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    button[disabled] { opacity: 0.6; cursor: not-allowed; }
 
-    /* FilePond idle label centering and embedded privacy note */
-    .filepond--drop-label { height: 100%; display: grid; place-items: center; text-align: center; padding: 0 12px; }
-    .filepond--root .pond-note { position: absolute; left: 12px; right: 12px; bottom: 10px; color: var(--muted); font-size: 12px; line-height: 1.35; text-align: center; pointer-events: none; }
-
-    /* Primary action button — full-width and prominent */
-    #runBtn.primary {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+    .filepond--drop-label {
+      min-height: 260px !important;
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center;
+      padding: 0 24px !important;
+      color: var(--muted);
+    }
+    .filepond--drop-label label {
+      margin: 0;
       width: 100%;
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid #223055aa;
-      background: var(--btn);
-      color: #081428;
-      font: inherit;
-      font-weight: 700; /* >= label weight (labels are 600) */
-      font-size: 1rem;  /* equal or larger than labels */
-      line-height: 1.2;
-      cursor: pointer;
-      transition: transform 0.02s ease, filter 0.12s ease;
+      display: flex;
+      justify-content: center;
+    }
+    .dropzone-copy { display: grid; gap: 10px; place-items: center; }
+    .filepond--drop-title { font-size: clamp(1.45rem, 2.4vw, 1.8rem); font-weight: 700; color: #334155; line-height: 1.2; }
+    .filepond--drop-subtitle { font-size: 1.15rem; color: #64748b; }
+    .filepond--label-action { font-weight: 700; font-size: 1.2rem; }
+    .dropzone-copy .pond-note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.35;
+      text-align: center;
+      max-width: 60ch;
     }
 
-    #runBtn.primary:hover,
-    #runBtn.primary:focus-visible {
-      text-decoration: none;
-      filter: brightness(1.05);
-    }
-
-    #runBtn.primary:active {
-      transform: translateY(1px);
-    }
-    /* Results empty state */
     #results { min-height: 120px; }
     .results-empty {
       display: grid; place-items: center;
       padding: 24px;
-      border: 1px dashed #223055aa;
+      border: 1px dashed var(--line);
       border-radius: 10px;
-      background: rgba(34,48,85,0.12);
+      background: var(--surface-soft);
       color: var(--muted);
       text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      main { padding-top: 20px; }
     }
   </style>
   <!-- Papa Parse (local) -->
@@ -179,6 +196,12 @@
   <link href="./vendor/filepond/filepond.css" rel="stylesheet" />
   <script src="./vendor/filepond/filepond.js"></script>
   <script src="./vendor/filepond-plugin-file-validate-type/filepond-plugin-file-validate-type.js"></script>
+  <!-- Plotly (local) -->
+  <script src="./vendor/plotly/plotly.min.js"></script>
+  <!-- jsPDF + AutoTable (local) -->
+  <script src="./vendor/jspdf/jspdf.umd.min.js"></script>
+  <script src="./vendor/jspdf/jspdf.plugin.autotable.min.js"></script>
+  <script src="./pdf.js" defer></script>
   <!-- Favicon -->
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="shortcut icon" href="favicon.png" type="image/png" />
@@ -222,7 +245,10 @@
     </section>
 
     <section>
-      <h2>Results</h2>
+      <div class="results-header">
+        <h2>Results</h2>
+        <button id="savePdfBtn" type="button" class="btn btn-secondary" disabled>Save to PDF</button>
+      </div>
       <div id="results">
         <div class="results-empty" aria-live="polite">Nothing yet! Drop a CSV above and click Compute metrics.</div>
       </div>
@@ -512,6 +538,7 @@
       const el = document.getElementById(target);
       if (data.error){
         el.innerHTML = `<div class="error">${data.error}</div>`;
+        if (savePdfBtn) savePdfBtn.disabled = true;
         return;
       }
 
@@ -594,7 +621,170 @@
         ${strataHtml}
       `;
 
-      el.innerHTML = mainTableHtml + veiTableHtml;
+      el.innerHTML = mainTableHtml + veiTableHtml +
+        '<div id="veiChart" style="margin-top:24px;min-height:420px;"></div>';
+      renderVEIChart(data);
+      if (savePdfBtn) savePdfBtn.disabled = false;
+    }
+
+    async function exportResultsToPDF() {
+      const resultsNode = document.getElementById('results');
+      if (!resultsNode || resultsNode.querySelector('.results-empty')) return;
+
+      const saveLabel = savePdfBtn.textContent;
+      savePdfBtn.disabled = true;
+      savePdfBtn.textContent = 'Preparing PDF…';
+
+      try {
+        if (typeof window.generatePDF !== 'function') {
+          throw new Error('PDF generator is not available. Please refresh and try again.');
+        }
+
+        const tablesHtml = resultsNode.querySelectorAll('table');
+        const sections = [
+          { type: 'text', content: 'Vertical Equity Studies Report', isTitle: true },
+          { type: 'text', content: `Generated ${new Date().toLocaleString()}` }
+        ];
+
+        tablesHtml.forEach((tbl, i) => {
+          const titleNode = tbl.previousElementSibling;
+          const title = titleNode && /^H[1-6]$/.test(titleNode.tagName) ? titleNode.textContent : `Table ${i + 1}`;
+          const bodyRows = Array.from(tbl.querySelectorAll('tbody tr'));
+          if (!bodyRows.length) return;
+          const headerRow = tbl.querySelector('thead tr');
+          const headers = headerRow
+            ? Array.from(headerRow.cells).map((cell) => (cell.textContent || '').trim())
+            : [];
+          const rows = bodyRows.map((tr) => Array.from(tr.cells).map((cell) => (cell.textContent || '').trim()));
+
+          sections.push({ type: 'text', content: title, isTitle: true });
+          sections.push({ type: 'table', headers, rows });
+        });
+
+        if (document.getElementById('veiPlot')) {
+          sections.push({ type: 'chart', plotlyDivId: 'veiPlot', title: 'VEI Chart', pageBreakBefore: true });
+        }
+
+        await window.generatePDF({
+          filename: 'vertical-equity-results.pdf',
+          sections
+        });
+      } catch (err) {
+        showMessages([`PDF export failed: ${err && err.message ? err.message : err}`]);
+      } finally {
+        savePdfBtn.disabled = false;
+        savePdfBtn.textContent = saveLabel;
+      }
+    }
+
+    // ---------- VEI Chart ----------
+    function renderVEIChart(data) {
+      const wrap = document.getElementById('veiChart');
+      if (!wrap || !window.Plotly) return;
+      if (!data.strata || data.strata.length < 2 || !isFinite(data.med)) return;
+
+      const G = data.strata.length;
+      const groupLabel = G === 2 ? 'Half' : G === 4 ? 'Quartile' : G === 10 ? 'Decile' : 'Group';
+      const boxIndices = Array.from({length: G}, (_, i) => i);
+      const ciIndex = G;
+      const medColor = '#dc2626';
+
+      // Build inner layout: Plotly div + controls column
+      const btnBase = 'display:flex;align-items:center;gap:7px;width:100%;padding:6px 9px;' +
+        'border-radius:7px;border:1px solid #93c5fd;background:#ffffff;' +
+        'color:#1e3a8a;font:inherit;font-size:12px;cursor:pointer;text-align:left;margin-bottom:4px;';
+      const dot = c => `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};flex-shrink:0;"></span>`;
+      wrap.innerHTML = `
+        <div style="display:flex;gap:0;align-items:flex-start;">
+          <div id="veiPlot" style="flex:1;min-height:420px;"></div>
+          <div style="flex:0 0 148px;padding:50px 0 0 14px;display:flex;flex-direction:column;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:600;">click to show/hide:</div>
+            <button id="veiBtnBoxes"  style="${btnBase}">${dot('#4285F4')}Box distribution</button>
+            <button id="veiBtnMedian" style="${btnBase}">${dot(medColor)}Sample median</button>
+            <button id="veiBtnCI"     style="${btnBase}">${dot('#ffffff')}90% CI (median)</button>
+          </div>
+        </div>`;
+
+      const plotEl = document.getElementById('veiPlot');
+
+      const traces = data.strata.map((s, i) => ({
+        type: 'box',
+        y: s.ratios,
+        name: `${groupLabel} ${i + 1}`,
+        showlegend: false,
+        boxpoints: 'outliers',
+        marker: { color: '#3b82f6', size: 5, opacity: 0.8 },
+        line: { color: '#1d4ed8' },
+        fillcolor: 'rgba(59,130,246,0.35)',
+        hovertemplate: '%{y:.4f}<extra></extra>',
+      }));
+
+      traces.push({
+        type: 'scatter',
+        mode: 'markers',
+        showlegend: false,
+        x: data.strata.map((_, i) => `${groupLabel} ${i + 1}`),
+        y: data.strata.map(s => s.median),
+        error_y: {
+          type: 'data',
+          symmetric: false,
+          array:      data.strata.map(s => s.ci_high - s.median),
+          arrayminus: data.strata.map(s => s.median - s.ci_low),
+          color: 'rgba(15,23,42,0.95)',
+          thickness: 2.5,
+          width: 10,
+        },
+        marker: { symbol: 'diamond', size: 9, color: '#ffffff', line: { color: '#1d4ed8', width: 1.5 } },
+        customdata: data.strata.map(s => [s.ci_low, s.ci_high]),
+        hovertemplate:
+          '<b>%{x}</b><br>' +
+          'Median: %{y:.4f}<br>' +
+          '90% CI: [%{customdata[0]:.4f}, %{customdata[1]:.4f}]' +
+          '<extra></extra>',
+      });
+
+      const layout = {
+        title: { text: 'Vertical Equity Analysis using Vertical Equity Indicator (VEI)', font: { size: 15 } },
+        xaxis: { title: groupLabel, showgrid: false },
+        yaxis: { title: 'Ratio', zeroline: false, gridcolor: '#e2e8f0' },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: '#ffffff',
+        font: { color: '#1f2937', family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
+        showlegend: false,
+        shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: data.med, y1: data.med,
+                   line: { color: medColor, width: 1.5, dash: 'dash' } }],
+        annotations: [{ xref: 'paper', x: 1.01, xanchor: 'left', yref: 'y', y: data.med,
+                        text: `Sample<br>Median<br>${data.med.toFixed(4)}`, showarrow: false,
+                        font: { color: medColor, size: 11 } }],
+        margin: { t: 50, r: 80, b: 50, l: 60 },
+      };
+
+      Plotly.newPlot(plotEl, traces, layout, { responsive: true, displayModeBar: false });
+
+      // Toggle wiring
+      const state = { boxes: true, ci: false, median: true };
+      function styleBtn(btn, active) {
+        btn.style.borderColor = active ? '#3b82f6' : '#cbd5e1';
+        btn.style.color       = active ? '#1e3a8a' : '#94a3b8';
+      }
+      Plotly.restyle(plotEl, { visible: false }, [ciIndex]);
+      styleBtn(document.getElementById('veiBtnCI'), false);
+      document.getElementById('veiBtnBoxes').addEventListener('click', function() {
+        state.boxes = !state.boxes;
+        Plotly.restyle(plotEl, { visible: state.boxes }, boxIndices);
+        styleBtn(this, state.boxes);
+      });
+      document.getElementById('veiBtnCI').addEventListener('click', function() {
+        state.ci = !state.ci;
+        Plotly.restyle(plotEl, { visible: state.ci }, [ciIndex]);
+        styleBtn(this, state.ci);
+      });
+      document.getElementById('veiBtnMedian').addEventListener('click', function() {
+        state.median = !state.median;
+        const c = state.median ? medColor : 'rgba(0,0,0,0)';
+        Plotly.relayout(plotEl, { 'shapes[0].line.color': c, 'annotations[0].font.color': c });
+        styleBtn(this, state.median);
+      });
     }
 
     // ---------- UI wiring ----------
@@ -604,6 +794,7 @@
     const saleFieldSel = document.getElementById('saleFieldSel');
     const valFieldSel = document.getElementById('valFieldSel');
     const runBtn = document.getElementById('runBtn');
+    const savePdfBtn = document.getElementById('savePdfBtn');
     const messages = document.getElementById('messages');
 
     // Initialize FilePond on the existing file input for a polished drag & drop UI
@@ -631,8 +822,11 @@
           resolve(type);
         }),
         labelIdle: `
-          <span class="filepond--drop-label">Drag & Drop your CSV or&nbsp;<span class="filepond--label-action">Browse</span></span>
-          <span class="pond-note">Your data never leaves your computer — files are read and processed entirely in your browser.</span>
+          <span class="dropzone-copy">
+              <span class="filepond--drop-title">Drop your CSV file here</span>
+              <span class="pond-note">Your data never leaves your computer — files are read and processed entirely in your browser.</span>
+              <span class="filepond--drop-subtitle">or&nbsp;<span class="filepond--label-action">Browse</span></span>
+          </span>
         `,
       });
       pond.on('addfile', async (error, item) => {
@@ -818,6 +1012,7 @@
     }
 
     runBtn.addEventListener('click', run);
+    savePdfBtn.addEventListener('click', exportResultsToPDF);
   </script>
 </body>
 </html>
