@@ -137,18 +137,20 @@ async function generatePDF(config) {
       }
       const imgW = Math.max(1, Number(section.imageWidth || 1200));
       const imgH = Math.max(1, Number(section.imageHeight || 700));
+      const imageFormat = String(section.imageFormat || (dataUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG')).toUpperCase();
       const targetWidth = PAGE.usableWidth;
       const targetHeight = targetWidth * (imgH / imgW);
       cursorY = ensureSpace(doc, cursorY, targetHeight);
       try {
         console.info('[pdf-map] addImage diagnostics', {
           dataUrlLength: dataUrl.length,
+          imageFormat,
           sourceWidth: imgW,
           sourceHeight: imgH,
           targetWidth,
           targetHeight
         });
-        doc.addImage(dataUrl, 'PNG', PAGE.margin, cursorY, targetWidth, targetHeight);
+        doc.addImage(dataUrl, imageFormat, PAGE.margin, cursorY, targetWidth, targetHeight);
         cursorY += targetHeight + 8;
       } catch (err) {
         console.warn('[pdf-map] addImage failed', err);

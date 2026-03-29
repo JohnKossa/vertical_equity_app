@@ -837,7 +837,8 @@
             title: 'Ratio Map',
             dataUrl: mapDataUrl,
             imageWidth: snap.width,
-            imageHeight: snap.height
+            imageHeight: snap.height,
+            imageFormat: snap.format || 'PNG'
           });
           sections.push({
             type: 'text',
@@ -862,7 +863,7 @@
     }
 
     async function captureMapSnapshot(){
-      if (!mapInstance) return { dataUrl: '', width: 1200, height: 700, diagnostics: { reason: 'no_map_instance' } };
+      if (!mapInstance) return { dataUrl: '', width: 1200, height: 700, format: 'PNG', diagnostics: { reason: 'no_map_instance' } };
       const diagnostics = {
         styleLoadedBefore: false,
         mapLoadedBefore: false,
@@ -894,15 +895,27 @@
       if (!canvas) {
         diagnostics.reason = 'no_canvas';
         console.warn('[pdf-map] snapshot diagnostics', diagnostics);
-        return { dataUrl: '', width: 1200, height: 700, diagnostics };
+        return { dataUrl: '', width: 1200, height: 700, format: 'PNG', diagnostics };
       }
       diagnostics.canvasWidth = canvas.width || 0;
       diagnostics.canvasHeight = canvas.height || 0;
       let dataUrl = '';
-      try { dataUrl = canvas.toDataURL('image/png'); } catch (e) { diagnostics.error = String(e && e.message ? e.message : e); }
+      let format = 'PNG';
+      try {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        format = 'JPEG';
+      } catch (_) {}
+      if (!dataUrl) {
+        try {
+          dataUrl = canvas.toDataURL('image/png');
+          format = 'PNG';
+        } catch (e) {
+          diagnostics.error = String(e && e.message ? e.message : e);
+        }
+      }
       diagnostics.dataUrlLength = dataUrl ? dataUrl.length : 0;
       console.info('[pdf-map] snapshot diagnostics', diagnostics);
-      return { dataUrl, width: canvas.width || 1200, height: canvas.height || 700, diagnostics };
+      return { dataUrl, width: canvas.width || 1200, height: canvas.height || 700, format, diagnostics };
     }
 
     // ---------- VEI Chart ----------
@@ -1053,9 +1066,6 @@
     let viewMode = sessionStorage.getItem('vizMode') === 'bw' ? 'bw' : 'color';
     const MAP_SOURCE_ID = 'ratio-points-source';
     const MAP_LAYER_ID = 'ratio-points-layer';
-    const MAP_NEG_LAYER_ID = 'ratio-neg-layer';
-    const MAP_UP_LAYER_ID = 'ratio-up-layer';
-    const MAP_DOWN_LAYER_ID = 'ratio-down-layer';
 
     // Initialize FilePond on the existing file input for a polished drag & drop UI
     if (window.FilePond) {
@@ -1258,16 +1268,16 @@
       if (!mapLegend) return;
       const rows = isBWMode()
         ? [
-            ['#d1d5db', 'Circle: ratio 0.9 to 1.1 (inclusive)'],
-            ['#6b7280', '▽ triangle: ratio 0 to < 0.9'],
-            ['#111827', '△ triangle: ratio > 1.1'],
-            ['#ffffff', '✕ mark: ratio < 0']
+            ['#1f2937', 'Low assessments: ratio 0 to < 0.9 (dark fill, light outline)'],
+            ['#d1d5db', 'Near target: ratio 0.9 to 1.1 (light gray)'],
+            ['#ffffff', 'High assessments: ratio > 1.1 (white fill, dark heavy outline)'],
+            ['#111111', 'Negative ratio: < 0 (black fill, thick light outline)']
           ]
         : [
-            ['#ffffff', 'Circle + white: ratio 0.9 to 1.1 (inclusive)'],
-            ['rgb(0,0,255)', '▽ triangle + blue: ratio 0 to < 0.9'],
-            ['rgb(255,0,0)', '△ triangle + red: ratio > 1.1'],
-            ['#ff00ff', '✕ mark + magenta: ratio < 0']
+            ['rgb(0,0,255)', 'Low assessments: ratio 0 to < 0.9'],
+            ['#ffffff', 'Near target: ratio 0.9 to 1.1 (inclusive)'],
+            ['rgb(255,0,0)', 'High assessments: ratio > 1.1'],
+            ['#ff00ff', 'Negative ratio: < 0']
           ];
       mapLegend.innerHTML = `
         <div><b>Map legend</b></div>
@@ -1306,9 +1316,9 @@
 
     function ratioToStrokeColor(r){
       if (!isFinite(r)) return '#334155';
-      if (r < 0) return isBWMode() ? '#000000' : '#8b008b';
+      if (r < 0) return isBWMode() ? '#111111' : '#8b008b';
       if (isBWMode()){
-        if (r < 0.9) return '#1f2937';
+        if (r < 0.9) return '#e5e7eb';
         if (r > 1.1) return '#111827';
         return '#475569';
       }
@@ -1335,10 +1345,6 @@
           continue;
         }
         const ratio = val / sale;
-        let shapeType = 'circle';
-        if (ratio < 0) shapeType = 'neg';
-        else if (ratio < 0.9) shapeType = 'down';
-        else if (ratio > 1.1) shapeType = 'up';
         features.push({
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [lon, lat] },
@@ -1348,8 +1354,7 @@
             val,
             ratioColor: ratioToColor(ratio),
             ratioStrokeColor: ratioToStrokeColor(ratio),
-            isNegative: ratio < 0 ? 1 : 0,
-            shapeType
+            isNegative: ratio < 0 ? 1 : 0
           }
         });
       }
@@ -1382,7 +1387,6 @@
         preserveDrawingBuffer: true,
         style: {
           version: 8,
-          glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
           sources: {
             cartoDark: {
               type: 'raster',
@@ -1424,58 +1428,40 @@
             type: 'circle',
             source: MAP_SOURCE_ID,
             paint: {
-              'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 1.3, 8, 2.6, 12, 3.8],
-              'circle-color': ['get', 'ratioColor'],
-              'circle-stroke-color': ['get', 'ratioStrokeColor'],
-              'circle-stroke-width': isBWMode() ? 1.1 : 0.85,
-              'circle-opacity': [
-                'case',
-                ['==', ['get', 'shapeType'], 'circle'], 0.82,
-                0.35
-              ]
+              'circle-radius': isBWMode()
+                ? ['case',
+                    ['<', ['get', 'ratio'], 0], 3.6,
+                    ['<', ['get', 'ratio'], 0.9], 2.8,
+                    ['<=', ['get', 'ratio'], 1.1], 2.4,
+                    3.2
+                  ]
+                : ['interpolate', ['linear'], ['zoom'], 3, 1.3, 8, 2.6, 12, 3.8],
+              'circle-color': isBWMode()
+                ? ['case',
+                    ['<', ['get', 'ratio'], 0], '#111111',
+                    ['<', ['get', 'ratio'], 0.9], '#1f2937',
+                    ['<=', ['get', 'ratio'], 1.1], '#d1d5db',
+                    '#ffffff'
+                  ]
+                : ['get', 'ratioColor'],
+              'circle-stroke-color': isBWMode()
+                ? ['case',
+                    ['<', ['get', 'ratio'], 0], '#f8fafc',
+                    ['<', ['get', 'ratio'], 0.9], '#e5e7eb',
+                    ['<=', ['get', 'ratio'], 1.1], '#334155',
+                    '#111827'
+                  ]
+                : ['get', 'ratioStrokeColor'],
+              'circle-stroke-width': isBWMode()
+                ? ['case',
+                    ['<', ['get', 'ratio'], 0], 1.7,
+                    ['<', ['get', 'ratio'], 0.9], 1.1,
+                    ['<=', ['get', 'ratio'], 1.1], 0.9,
+                    1.6
+                  ]
+                : 0.85,
+              'circle-opacity': isBWMode() ? 0.92 : 0.82
             }
-          });
-
-          map.addLayer({
-            id: MAP_UP_LAYER_ID,
-            type: 'symbol',
-            source: MAP_SOURCE_ID,
-            filter: ['==', ['get', 'shapeType'], 'up'],
-            layout: {
-              'text-field': '△',
-              'text-size': 11,
-              'text-font': ['Open Sans Regular'],
-              'text-allow-overlap': true
-            },
-            paint: { 'text-color': ['get', 'ratioColor'], 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
-          });
-
-          map.addLayer({
-            id: MAP_DOWN_LAYER_ID,
-            type: 'symbol',
-            source: MAP_SOURCE_ID,
-            filter: ['==', ['get', 'shapeType'], 'down'],
-            layout: {
-              'text-field': '▽',
-              'text-size': 11,
-              'text-font': ['Open Sans Regular'],
-              'text-allow-overlap': true
-            },
-            paint: { 'text-color': ['get', 'ratioColor'], 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
-          });
-
-          map.addLayer({
-            id: MAP_NEG_LAYER_ID,
-            type: 'symbol',
-            source: MAP_SOURCE_ID,
-            filter: ['==', ['get', 'shapeType'], 'neg'],
-            layout: {
-              'text-field': '✕',
-              'text-size': 11,
-              'text-font': ['Open Sans Regular'],
-              'text-allow-overlap': true
-            },
-            paint: { 'text-color': isBWMode() ? '#000000' : '#ff00ff', 'text-halo-color': ['get', 'ratioStrokeColor'], 'text-halo-width': 0.7 }
           });
 
           const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
@@ -1502,12 +1488,6 @@
           };
           map.on('mouseenter', MAP_LAYER_ID, showPopup);
           map.on('mouseleave', MAP_LAYER_ID, hidePopup);
-          map.on('mouseenter', MAP_UP_LAYER_ID, showPopup);
-          map.on('mouseleave', MAP_UP_LAYER_ID, hidePopup);
-          map.on('mouseenter', MAP_DOWN_LAYER_ID, showPopup);
-          map.on('mouseleave', MAP_DOWN_LAYER_ID, hidePopup);
-          map.on('mouseenter', MAP_NEG_LAYER_ID, showPopup);
-          map.on('mouseleave', MAP_NEG_LAYER_ID, hidePopup);
         }
         fitMapToData();
       }
