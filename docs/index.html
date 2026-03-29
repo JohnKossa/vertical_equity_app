@@ -834,8 +834,7 @@
             imageFormat: snap.format || 'PNG'
           });
           const legendRows = getMapLegendRows();
-          sections.push({ type: 'text', content: 'Map legend', isTitle: true });
-          legendRows.forEach(([, label]) => sections.push({ type: 'text', content: `• ${label}` }));
+          sections.push({ type: 'legend', title: 'Map legend', rows: legendRows });
         }
 
         await window.generatePDF({

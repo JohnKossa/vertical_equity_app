@@ -22,6 +22,23 @@ function resolveJsPDF() {
   throw new Error('jsPDF not found on window. Check jspdf.umd.min.js include path.');
 }
 
+function parseCssColorToRgb(input) {
+  const s = String(input || '').trim().toLowerCase();
+  if (!s) return [51, 65, 85];
+  if (s.startsWith('#')) {
+    const hex = s.slice(1);
+    if (hex.length === 3) {
+      return hex.split('').map((c) => parseInt(c + c, 16));
+    }
+    if (hex.length === 6) {
+      return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    }
+  }
+  const m = s.match(/^rgb\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/);
+  if (m) return [Number(m[1]), Number(m[2]), Number(m[3])];
+  return [51, 65, 85];
+}
+
 async function drawChartSection(doc, section, cursorY) {
   const title = typeof section.title === 'string' ? section.title : '';
   if (title) {
@@ -160,6 +177,33 @@ async function generatePDF(config) {
         doc.text('Map image could not be embedded in PDF.', PAGE.margin, cursorY, { maxWidth: PAGE.usableWidth });
         cursorY += 8;
       }
+    }
+
+    if (section.type === 'legend') {
+      const rows = Array.isArray(section.rows) ? section.rows : [];
+      const title = typeof section.title === 'string' ? section.title : 'Legend';
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(PAGE.titleFontSize);
+      cursorY = ensureSpace(doc, cursorY, 10);
+      doc.text(title, PAGE.margin, cursorY, { maxWidth: PAGE.usableWidth });
+      cursorY += 7;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(PAGE.bodyFontSize);
+      for (const row of rows) {
+        const color = Array.isArray(row) ? row[0] : '';
+        const label = Array.isArray(row) ? String(row[1] || '') : '';
+        cursorY = ensureSpace(doc, cursorY, 7);
+        const [r, g, b] = parseCssColorToRgb(color);
+        const cx = PAGE.margin + 2.8;
+        const cy = cursorY - 1.6;
+        doc.setDrawColor(51, 65, 85);
+        doc.setFillColor(r, g, b);
+        doc.circle(cx, cy, 1.7, 'FD');
+        doc.setTextColor(31, 41, 55);
+        doc.text(label, PAGE.margin + 8, cursorY);
+        cursorY += 5.2;
+      }
+      cursorY += 2;
     }
   }
 
