@@ -659,7 +659,7 @@
       const groupLabel = G === 2 ? 'Half' : G === 4 ? 'Quartile' : G === 10 ? 'Decile' : 'Group';
       const boxIndices = Array.from({length: G}, (_, i) => i);
       const ciIndex = G;
-      const medColor = '#f59e0b';
+      const medColor = '#dc2626';
 
       // Build inner layout: Plotly div + controls column
       const btnBase = 'display:flex;align-items:center;gap:7px;width:100%;padding:6px 9px;' +
@@ -672,8 +672,8 @@
           <div style="flex:0 0 148px;padding:50px 0 0 14px;display:flex;flex-direction:column;">
             <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:600;">click to show/hide:</div>
             <button id="veiBtnBoxes"  style="${btnBase}">${dot('#4285F4')}Box distribution</button>
-            <button id="veiBtnCI"     style="${btnBase}">${dot('#ffffff')}90% CI (median)</button>
             <button id="veiBtnMedian" style="${btnBase}">${dot(medColor)}Sample median</button>
+            <button id="veiBtnCI"     style="${btnBase}">${dot('#ffffff')}90% CI (median)</button>
           </div>
         </div>`;
 
@@ -734,11 +734,13 @@
       Plotly.newPlot(plotEl, traces, layout, { responsive: true, displayModeBar: false });
 
       // Toggle wiring
-      const state = { boxes: true, ci: true, median: true };
+      const state = { boxes: true, ci: false, median: true };
       function styleBtn(btn, active) {
         btn.style.borderColor = active ? '#3b82f6' : '#cbd5e1';
         btn.style.color       = active ? '#1e3a8a' : '#94a3b8';
       }
+      Plotly.restyle(plotEl, { visible: false }, [ciIndex]);
+      styleBtn(document.getElementById('veiBtnCI'), false);
       document.getElementById('veiBtnBoxes').addEventListener('click', function() {
         state.boxes = !state.boxes;
         Plotly.restyle(plotEl, { visible: state.boxes }, boxIndices);
