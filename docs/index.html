@@ -101,8 +101,10 @@
     .filepond--panel-root {
       border-radius: 16px;
       border: 2px dashed #cbd5e1;
-      background: #fff;
+      background: #fff !important;
     }
+    .filepond--panel-root,
+    .filepond--panel-root * { background-color: #fff; }
     .filepond--drip { background: transparent; opacity: 0 !important; }
     .filepond--item-panel,
     .filepond--panel-top,
@@ -151,23 +153,21 @@
       display: grid;
       place-items: center;
       text-align: center;
-      padding: 20px;
+      padding: 24px;
       color: var(--muted);
     }
-    .filepond--drop-label-inner { display: grid; gap: 6px; place-items: center; }
-    .filepond--drop-title { font-size: 1.35rem; font-weight: 600; color: #334155; }
-    .filepond--drop-subtitle { font-size: 0.95rem; color: #64748b; }
-    .filepond--label-action { font-weight: 700; }
+    .filepond--drop-label-inner { display: grid; gap: 10px; place-items: center; }
+    .filepond--drop-title { font-size: clamp(1.45rem, 2.4vw, 1.8rem); font-weight: 700; color: #334155; line-height: 1.2; }
+    .filepond--drop-subtitle { font-size: 1.15rem; color: #64748b; }
+    .filepond--label-action { font-weight: 700; font-size: 1.2rem; }
     .filepond--root .pond-note {
-      position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: 16px;
+      position: static;
+      margin-top: 4px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 0.95rem;
       line-height: 1.35;
       text-align: center;
-      pointer-events: none;
+      max-width: 60ch;
     }
 
     #results { min-height: 120px; }
