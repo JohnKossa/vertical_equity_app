@@ -106,10 +106,34 @@
     .filepond--panel-root,
     .filepond--panel-root * { background-color: #fff; }
     .filepond--drip { background: transparent; opacity: 0 !important; }
-    .filepond--item-panel,
-    .filepond--panel-top,
-    .filepond--panel-center,
-    .filepond--panel-bottom { background-color: transparent !important; }
+    .filepond--item-panel {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+      border: 1px solid #1e40af;
+      box-shadow: 0 8px 18px rgba(30, 64, 175, 0.24);
+    }
+    .filepond--file {
+      color: #eff6ff;
+      font-weight: 600;
+    }
+    .filepond--file-info-main,
+    .filepond--file-info-sub {
+      color: #eff6ff !important;
+      opacity: 1;
+    }
+    .filepond--file-status-main,
+    .filepond--file-status-sub {
+      color: #dbeafe !important;
+      opacity: 0.95;
+    }
+    .filepond--file-action-button {
+      color: #eff6ff !important;
+      background-color: rgba(15, 23, 42, 0.24) !important;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+    .filepond--file-action-button:hover,
+    .filepond--file-action-button:focus-visible {
+      background-color: rgba(15, 23, 42, 0.4) !important;
+    }
 
     .drawer { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
     .drawer-summary { cursor: pointer; list-style: none; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 650; }
@@ -121,6 +145,7 @@
 
     .results-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
     .results-header h2 { margin: 0; }
+    .results-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -133,7 +158,7 @@
     .btn-secondary { background: #fff; color: var(--accent-strong); border-color: var(--accent); }
     .btn-secondary:hover, .btn-secondary:focus-visible { background: #eef4ff; text-decoration: none; }
 
-    #runBtn.primary { width: 100%; padding: 12px 16px; font-size: 1rem; }
+    #runBtn { width: 100%; padding: 12px 16px; font-size: 1rem; }
 
     footer { padding: 18px 16px 24px; color: var(--muted); font-size: 12px; text-align: center; }
 
@@ -176,6 +201,7 @@
     }
 
     #results { min-height: 120px; }
+    .results-footer-actions { margin-top: 14px; display: flex; justify-content: flex-end; }
     .results-empty {
       display: grid; place-items: center;
       padding: 24px;
@@ -185,6 +211,48 @@
       color: var(--muted);
       text-align: center;
     }
+
+    .map-shell { margin-top: 6px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    #ratioMap {
+      width: 100%;
+      height: clamp(420px, 55vh, 680px);
+      background: #2b3138;
+    }
+    .map-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .map-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .map-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-top: 8px;
+    }
+    #mapMessages {
+      margin-top: 8px;
+      font-size: 0.92rem;
+      color: #991b1b;
+      font-weight: 600;
+    }
+    .maplibregl-popup-content {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 20px rgba(2, 6, 23, 0.35);
+      font-size: 0.9rem;
+    }
+    .maplibregl-popup-tip { border-top-color: #0f172a !important; border-bottom-color: #0f172a !important; }
 
     @media (max-width: 900px) {
       main { padding-top: 20px; }
@@ -198,6 +266,9 @@
   <script src="./vendor/filepond-plugin-file-validate-type/filepond-plugin-file-validate-type.js"></script>
   <!-- Plotly (local) -->
   <script src="./vendor/plotly/plotly.min.js"></script>
+  <!-- MapLibre GL JS -->
+  <link href="https://unpkg.com/maplibre-gl@5.3.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@5.3.0/dist/maplibre-gl.js"></script>
   <!-- jsPDF + AutoTable (local) -->
   <script src="./vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="./vendor/jspdf/jspdf.plugin.autotable.min.js"></script>
@@ -235,7 +306,7 @@
               <select id="valFieldSel"></select>
             </div>
             <div class="field full">
-              <button id="runBtn" type="button" class="primary">Compute metrics</button>
+              <button id="runBtn" type="button" class="btn btn-secondary">Compute metrics</button>
             </div>
           </div>
           <div class="note">Assumptions: comma-delimited, UTF-8, header present. Rows with empty/non-numeric sale or valuation are ignored. Rows with sale_price ≤ 0 are excluded.</div>
@@ -247,10 +318,41 @@
     <section>
       <div class="results-header">
         <h2>Results</h2>
-        <button id="savePdfBtn" type="button" class="btn btn-secondary" disabled>Save to PDF</button>
+        <div class="results-actions">
+          <button id="mapBtnTop" type="button" class="btn btn-secondary" disabled>Put It On A Map</button>
+          <button id="savePdfBtn" type="button" class="btn btn-secondary" disabled>Save to PDF</button>
+        </div>
       </div>
       <div id="results">
         <div class="results-empty" aria-live="polite">Nothing yet! Drop a CSV above and click Compute metrics.</div>
+      </div>
+      <div class="results-footer-actions">
+        <button id="mapBtnBottom" type="button" class="btn btn-secondary" disabled>Put It On A Map</button>
+      </div>
+    </section>
+
+    <section id="mapSection" class="hidden">
+      <div class="results-header">
+        <h2>Map view</h2>
+      </div>
+      <div class="map-controls">
+        <div class="field">
+          <label for="latFieldSel">Latitude field (optional)</label>
+          <select id="latFieldSel"></select>
+        </div>
+        <div class="field">
+          <label for="lonFieldSel">Longitude field (optional)</label>
+          <select id="lonFieldSel"></select>
+        </div>
+      </div>
+      <div class="map-toolbar">
+        <button id="showMapBtn" type="button" class="btn btn-secondary">Show map</button>
+        <button id="resetMapExtentsBtn" type="button" class="btn btn-secondary hidden">Reset to data extents</button>
+      </div>
+      <div id="mapMessages" aria-live="polite"></div>
+      <div class="map-note">Blue dots are lower-than-sale ratios (&lt; 1.0), white is near 1.0, red is higher-than-sale (&gt; 1.0), and magenta flags negative ratios.</div>
+      <div id="mapShell" class="map-shell hidden">
+        <div id="ratioMap" role="region" aria-label="Map of sale ratio points"></div>
       </div>
     </section>
 
@@ -342,6 +444,14 @@
     function formatPct(x, digits=2){
       if (x === null || x === undefined || Number.isNaN(x)) return '—';
       return x.toFixed(digits) + '%';
+    }
+    function formatCurrency(x){
+      if (x === null || x === undefined || Number.isNaN(x)) return '—';
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0
+      }).format(x);
     }
 
     // ---------- Bootstrap median CI (seeded) ----------
@@ -793,9 +903,26 @@
     const stage2 = document.getElementById('stage2');
     const saleFieldSel = document.getElementById('saleFieldSel');
     const valFieldSel = document.getElementById('valFieldSel');
+    const latFieldSel = document.getElementById('latFieldSel');
+    const lonFieldSel = document.getElementById('lonFieldSel');
     const runBtn = document.getElementById('runBtn');
     const savePdfBtn = document.getElementById('savePdfBtn');
+    const mapBtnTop = document.getElementById('mapBtnTop');
+    const mapBtnBottom = document.getElementById('mapBtnBottom');
+    const mapSection = document.getElementById('mapSection');
+    const showMapBtn = document.getElementById('showMapBtn');
+    const resetMapExtentsBtn = document.getElementById('resetMapExtentsBtn');
+    const mapMessages = document.getElementById('mapMessages');
+    const mapShell = document.getElementById('mapShell');
     const messages = document.getElementById('messages');
+
+    let parsedRows = [];
+    let mapInstance = null;
+    let mapBounds = null;
+    let mapRendered = false;
+    let lastRunContext = null;
+    const MAP_SOURCE_ID = 'ratio-points-source';
+    const MAP_LAYER_ID = 'ratio-points-layer';
 
     // Initialize FilePond on the existing file input for a polished drag & drop UI
     if (window.FilePond) {
@@ -915,8 +1042,6 @@
       return fields[0] || '';
     }
 
-    let parsedRows = [];
-
     function parseFile(file){
       return new Promise((resolve, reject)=>{
         Papa.parse(file, {
@@ -933,6 +1058,182 @@
           error: (err)=> reject(err)
         });
       });
+    }
+
+    function populateOptionalSelect(sel, fields, selected){
+      sel.innerHTML = '';
+      const none = document.createElement('option');
+      none.value = '';
+      none.textContent = 'None';
+      sel.appendChild(none);
+      for (const f of fields){
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        if (f === selected) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    function guessOptionalField(fields, patterns){
+      const hit = guessField(fields, patterns);
+      return hit && fields.includes(hit) ? hit : '';
+    }
+
+    function showMapMessages(msgs, isError = true){
+      mapMessages.style.color = isError ? '#991b1b' : '#0f766e';
+      mapMessages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
+    }
+
+    function setupMapFieldSelectorsFromRows(rows){
+      const fields = rows && rows.length ? Object.keys(rows[0]) : [];
+      const latGuess = guessOptionalField(fields, ['^(lat|latitude|y|y_coord|ycoord)$']);
+      const lonGuess = guessOptionalField(fields, ['^(lon|lng|long|longitude|x|x_coord|xcoord)$']);
+      populateOptionalSelect(latFieldSel, fields, latGuess);
+      populateOptionalSelect(lonFieldSel, fields, lonGuess);
+    }
+
+    function ratioToColor(r){
+      if (!isFinite(r)) return '#94a3b8';
+      if (r < 0) return '#ff00ff';
+      if (r <= 1){
+        const t = Math.max(0, Math.min(1, (r - 0.5) / 0.5));
+        const channel = Math.round(255 * t);
+        return `rgb(${channel}, ${channel}, 255)`;
+      }
+      const t = Math.max(0, Math.min(1, (r - 1.0) / 1.0));
+      const gb = Math.round(255 * (1 - t));
+      return `rgb(255, ${gb}, ${gb})`;
+    }
+
+    function buildMapPoints(rows, saleField, valField, latField, lonField){
+      const features = [];
+      let invalidCoords = 0;
+      let invalidValues = 0;
+      for (const r of rows){
+        const lat = parseNumber(r[latField]);
+        const lon = parseNumber(r[lonField]);
+        const sale = parseNumber(r[saleField]);
+        const val = parseNumber(r[valField]);
+        if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180){
+          invalidCoords++;
+          continue;
+        }
+        if (!isFinite(sale) || !isFinite(val) || sale === 0){
+          invalidValues++;
+          continue;
+        }
+        const ratio = val / sale;
+        features.push({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [lon, lat] },
+          properties: {
+            ratio,
+            sale,
+            val,
+            ratioColor: ratioToColor(ratio)
+          }
+        });
+      }
+      return { features, invalidCoords, invalidValues };
+    }
+
+    function fitMapToData(){
+      if (!mapInstance || !mapBounds) return;
+      mapInstance.fitBounds(mapBounds, { padding: 40, duration: 600, maxZoom: 14 });
+    }
+
+    function ensureMap(){
+      if (mapInstance) return mapInstance;
+      if (!window.maplibregl){
+        throw new Error('Map library failed to load. Please refresh and try again.');
+      }
+      mapInstance = new maplibregl.Map({
+        container: 'ratioMap',
+        style: {
+          version: 8,
+          sources: {
+            cartoDark: {
+              type: 'raster',
+              tiles: [
+                'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+                'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+                'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+                'https://d.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png'
+              ],
+              tileSize: 256,
+              attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+            }
+          },
+          layers: [
+            { id: 'basemap', type: 'raster', source: 'cartoDark', minzoom: 0, maxzoom: 22 }
+          ]
+        },
+        center: [-98.5795, 39.8283],
+        zoom: 3
+      });
+      mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right');
+      return mapInstance;
+    }
+
+    function renderRatioMap(features, saleField, valField){
+      const map = ensureMap();
+      const fc = { type: 'FeatureCollection', features };
+      const bounds = new maplibregl.LngLatBounds();
+      for (const f of features){
+        bounds.extend(f.geometry.coordinates);
+      }
+      mapBounds = bounds;
+
+      function upsert(){
+        if (map.getSource(MAP_SOURCE_ID)) {
+          map.getSource(MAP_SOURCE_ID).setData(fc);
+        } else {
+          map.addSource(MAP_SOURCE_ID, { type: 'geojson', data: fc });
+          map.addLayer({
+            id: MAP_LAYER_ID,
+            type: 'circle',
+            source: MAP_SOURCE_ID,
+            paint: {
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2.5, 8, 5, 12, 7],
+              'circle-color': ['get', 'ratioColor'],
+              'circle-stroke-color': '#111827',
+              'circle-stroke-width': 0.9,
+              'circle-opacity': 0.82
+            }
+          });
+
+          const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
+          map.on('mouseenter', MAP_LAYER_ID, (e) => {
+            map.getCanvas().style.cursor = 'pointer';
+            const feature = e.features && e.features[0];
+            if (!feature) return;
+            const p = feature.properties || {};
+            const ratio = Number(p.ratio);
+            const sale = Number(p.sale);
+            const val = Number(p.val);
+            popup
+              .setLngLat(feature.geometry.coordinates)
+              .setHTML(
+                `<div><b>Ratio:</b> ${formatNumber(ratio, 4)}</div>` +
+                `<div><b>${saleField}:</b> ${formatCurrency(sale)}</div>` +
+                `<div><b>${valField}:</b> ${formatCurrency(val)}</div>`
+              )
+              .addTo(map);
+          });
+          map.on('mouseleave', MAP_LAYER_ID, () => {
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+          });
+        }
+        fitMapToData();
+      }
+
+      if (map.isStyleLoaded()) upsert();
+      else map.once('load', upsert);
+      resetMapExtentsBtn.classList.remove('hidden');
+      mapShell.classList.remove('hidden');
+      mapRendered = true;
     }
 
     async function run(){
@@ -962,6 +1263,8 @@
 
       const rows = await parseFile(file);
       if (!rows || !rows.length){ showMessages(['No rows found in CSV.']); return; }
+      parsedRows = rows;
+      setupMapFieldSelectorsFromRows(rows);
       // Validate headers
       const hdr = rows[0];
       if (!(saleField in hdr)) msgs.push(`Sale field "${saleField}" not found in header.`);
@@ -970,6 +1273,7 @@
 
       // Build compact transferable payload
       const pairs = rows.map(r => [r[saleField], r[valField]]);
+      lastRunContext = { saleField, valField };
 
       // Ensure a single worker instance
       let w = window.__metricsWorker;
@@ -986,6 +1290,11 @@
               const out = ev.data.result;
               showMessages(out.messages || []);
               renderResults('results', out);
+              mapBtnTop.disabled = false;
+              mapBtnBottom.disabled = false;
+              if (mapRendered) {
+                tryBuildMap(true);
+              }
               setLoading(false);
               if (inputDrawer) inputDrawer.open = false;
               document.querySelector('section + section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1011,8 +1320,60 @@
       w.postMessage({ type: 'compute', pairs });
     }
 
+    function revealMapSection(){
+      mapSection.classList.remove('hidden');
+      mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function tryBuildMap(isAutoRefresh = false){
+      if (!parsedRows.length){
+        const msg = ['Please compute metrics first so there is data to map.'];
+        showMapMessages(msg, true);
+        if (!isAutoRefresh) showMessages(msg);
+        return;
+      }
+      const latField = latFieldSel.value;
+      const lonField = lonFieldSel.value;
+      const saleField = lastRunContext && lastRunContext.saleField;
+      const valField = lastRunContext && lastRunContext.valField;
+      const errs = [];
+      if (!saleField || !valField) errs.push('Compute metrics first to establish sale/valuation fields.');
+      if (!latField && lonField) errs.push('Please choose a latitude field.');
+      if (latField && !lonField) errs.push('Please choose a longitude field.');
+      if (!latField && !lonField) errs.push('Please choose both latitude and longitude fields.');
+      if (errs.length){
+        showMapMessages(errs, true);
+        if (!isAutoRefresh) showMessages(errs);
+        return;
+      }
+
+      const { features, invalidCoords, invalidValues } = buildMapPoints(parsedRows, saleField, valField, latField, lonField);
+      if (!features.length){
+        const msg = ['No valid mappable points were found using the selected fields.'];
+        showMapMessages(msg, true);
+        if (!isAutoRefresh) showMessages(msg);
+        return;
+      }
+      try {
+        renderRatioMap(features, saleField, valField);
+        const info = [];
+        info.push(`Mapped ${features.length} points.`);
+        if (invalidCoords) info.push(`${invalidCoords} rows skipped for invalid/missing coordinates.`);
+        if (invalidValues) info.push(`${invalidValues} rows skipped for invalid sale/value data.`);
+        showMapMessages(info, false);
+      } catch (e) {
+        const msg = [`Could not render map: ${e && e.message ? e.message : e}`];
+        showMapMessages(msg, true);
+        if (!isAutoRefresh) showMessages(msg);
+      }
+    }
+
     runBtn.addEventListener('click', run);
     savePdfBtn.addEventListener('click', exportResultsToPDF);
+    mapBtnTop.addEventListener('click', revealMapSection);
+    mapBtnBottom.addEventListener('click', revealMapSection);
+    showMapBtn.addEventListener('click', () => tryBuildMap(false));
+    resetMapExtentsBtn.addEventListener('click', fitMapToData);
   </script>
 </body>
 </html>
