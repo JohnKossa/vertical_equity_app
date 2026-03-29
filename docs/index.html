@@ -612,7 +612,7 @@
           const headerRow = tbl.querySelector('thead tr');
           const headers = headerRow
             ? Array.from(headerRow.cells).map((cell) => (cell.textContent || '').trim())
-            : Array.from(bodyRows[0].cells).map((cell) => (cell.textContent || '').trim());
+            : [];
           const rows = bodyRows.map((tr) => Array.from(tr.cells).map((cell) => (cell.textContent || '').trim()));
 
           sections.push({ type: 'text', content: title, isTitle: true });
@@ -620,8 +620,7 @@
         });
 
         if (document.getElementById('veiPlot')) {
-          sections.push({ type: 'text', content: 'VEI Chart', isTitle: true });
-          sections.push({ type: 'chart', plotlyDivId: 'veiPlot', title: 'VEI Chart' });
+          sections.push({ type: 'chart', plotlyDivId: 'veiPlot', title: 'VEI Chart', pageBreakBefore: true });
         }
 
         await window.generatePDF({

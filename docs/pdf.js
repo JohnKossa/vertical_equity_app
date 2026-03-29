@@ -23,12 +23,14 @@ function resolveJsPDF() {
 }
 
 async function drawChartSection(doc, section, cursorY) {
-  const title = section.title || 'Chart';
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(PAGE.titleFontSize);
-  cursorY = ensureSpace(doc, cursorY, 10);
-  doc.text(title, PAGE.margin, cursorY, { maxWidth: PAGE.usableWidth });
-  cursorY += 8;
+  const title = typeof section.title === 'string' ? section.title : '';
+  if (title) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(PAGE.titleFontSize);
+    cursorY = ensureSpace(doc, cursorY, 10);
+    doc.text(title, PAGE.margin, cursorY, { maxWidth: PAGE.usableWidth });
+    cursorY += 8;
+  }
 
   const chartNode = document.getElementById(section.plotlyDivId);
   if (!chartNode || !window.Plotly || typeof Plotly.toImage !== 'function') {
@@ -68,6 +70,10 @@ async function generatePDF(config) {
 
   for (const section of sections) {
     if (!section || !section.type) continue;
+    if (section.pageBreakBefore) {
+      doc.addPage();
+      cursorY = PAGE.margin;
+    }
 
     if (section.type === 'text') {
       const isTitle = Boolean(section.isTitle);
@@ -88,8 +94,7 @@ async function generatePDF(config) {
       const rows = Array.isArray(section.rows) ? section.rows : [];
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(PAGE.bodyFontSize);
-      doc.autoTable({
-        head: [headers],
+      const tableOptions = {
         body: rows,
         startY: cursorY,
         margin: { left: PAGE.margin, right: PAGE.margin, top: PAGE.margin, bottom: PAGE.margin },
@@ -98,7 +103,11 @@ async function generatePDF(config) {
         didDrawPage: (data) => {
           cursorY = data.cursor && data.cursor.y ? data.cursor.y : PAGE.margin;
         },
-      });
+      };
+      if (headers.length) {
+        tableOptions.head = [headers];
+      }
+      doc.autoTable(tableOptions);
       cursorY = (doc.lastAutoTable && doc.lastAutoTable.finalY ? doc.lastAutoTable.finalY : cursorY) + 8;
       continue;
     }
