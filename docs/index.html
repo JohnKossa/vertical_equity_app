@@ -148,21 +148,26 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .filepond--drop-label {
-      height: 100%;
-      min-height: 260px;
-      display: grid;
-      place-items: center;
+      min-height: 260px !important;
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
       text-align: center;
-      padding: 24px;
+      padding: 0 24px !important;
       color: var(--muted);
     }
-    .filepond--drop-label-inner { display: grid; gap: 10px; place-items: center; }
+    .filepond--drop-label label {
+      margin: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    .dropzone-copy { display: grid; gap: 10px; place-items: center; }
     .filepond--drop-title { font-size: clamp(1.45rem, 2.4vw, 1.8rem); font-weight: 700; color: #334155; line-height: 1.2; }
     .filepond--drop-subtitle { font-size: 1.15rem; color: #64748b; }
     .filepond--label-action { font-weight: 700; font-size: 1.2rem; }
-    .filepond--root .pond-note {
-      position: static;
-      margin-top: 4px;
+    .dropzone-copy .pond-note {
       color: var(--muted);
       font-size: 0.95rem;
       line-height: 1.35;
@@ -817,13 +822,11 @@
           resolve(type);
         }),
         labelIdle: `
-          <span class="filepond--drop-label">
-            <span class="filepond--drop-label-inner">
+          <span class="dropzone-copy">
               <span class="filepond--drop-title">Drop your CSV file here</span>
+              <span class="pond-note">Your data never leaves your computer — files are read and processed entirely in your browser.</span>
               <span class="filepond--drop-subtitle">or&nbsp;<span class="filepond--label-action">Browse</span></span>
-            </span>
           </span>
-          <span class="pond-note">Your data never leaves your computer — files are read and processed entirely in your browser.</span>
         `,
       });
       pond.on('addfile', async (error, item) => {
