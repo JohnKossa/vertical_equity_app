@@ -88,7 +88,7 @@
     #stage2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
     #stage2 label { font-size: 0.95rem; line-height: 1.25; }
     .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2f7; }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
     .full { grid-column: 1 / -1; }
 
     .filepond--root {
@@ -201,7 +201,7 @@
     }
 
     #results { min-height: 120px; }
-    .results-footer-actions { margin-top: 14px; display: flex; justify-content: flex-end; }
+    .results-footer-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
     .results-empty {
       display: grid; place-items: center;
       padding: 24px;
@@ -250,15 +250,38 @@
       font-weight: 600;
     }
     .maplibregl-popup-content {
-      background: #0f172a;
-      color: #f8fafc;
-      border: 1px solid #475569;
+      background: #f8fafc !important;
+      color: #0f172a !important;
+      border: 1px solid #64748b !important;
       border-radius: 10px;
       padding: 10px 12px;
       box-shadow: 0 8px 20px rgba(2, 6, 23, 0.35);
       font-size: 0.9rem;
     }
-    .maplibregl-popup-tip { border-top-color: #0f172a !important; border-bottom-color: #0f172a !important; }
+    .maplibregl-popup-content b { color: #0f172a !important; }
+    .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+    .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+    .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+      border-bottom-color: #f8fafc !important;
+    }
+    .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+    .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+    .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+      border-top-color: #f8fafc !important;
+    }
+    .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #f8fafc !important; }
+    .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #f8fafc !important; }
+    .map-legend {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      color: #334155;
+    }
+    .legend-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #334155; }
 
     @media (max-width: 900px) {
       main { padding-top: 20px; }
@@ -325,7 +348,6 @@
       <div class="results-header">
         <h2>Results</h2>
         <div class="results-actions">
-          <button id="bwModeBtn" type="button" class="btn btn-primary hidden" disabled>Black &amp; White optimization: Off</button>
           <button id="savePdfBtn" type="button" class="btn btn-secondary hidden" disabled>Save to PDF</button>
         </div>
       </div>
@@ -333,6 +355,7 @@
         <div class="results-empty" aria-live="polite">Nothing yet! Drop a CSV above and click Compute metrics.</div>
       </div>
       <div class="results-footer-actions">
+        <button id="bwModeBtn" type="button" class="btn btn-primary hidden" disabled>Black &amp; White optimization: Off</button>
         <button id="mapBtnBottom" type="button" class="btn btn-secondary hidden" disabled>Put It On A Map</button>
       </div>
     </section>
@@ -357,6 +380,7 @@
       </div>
       <div id="mapMessages" aria-live="polite"></div>
       <div class="map-note">Blue dots are lower-than-sale ratios (&lt; 1.0), white is near 1.0, red is higher-than-sale (&gt; 1.0), and magenta flags negative ratios.</div>
+      <div id="mapLegend" class="map-legend hidden" aria-live="polite"></div>
       <div id="mapShell" class="map-shell hidden">
         <div id="ratioMap" role="region" aria-label="Map of sale ratio points"></div>
       </div>
@@ -957,6 +981,7 @@
     const showMapBtn = document.getElementById('showMapBtn');
     const resetMapExtentsBtn = document.getElementById('resetMapExtentsBtn');
     const mapMessages = document.getElementById('mapMessages');
+    const mapLegend = document.getElementById('mapLegend');
     const mapShell = document.getElementById('mapShell');
     const messages = document.getElementById('messages');
 
@@ -1073,6 +1098,7 @@
         bwModeBtn.disabled = true;
         savePdfBtn.disabled = true;
         mapBtnBottom.disabled = true;
+        mapLegend.classList.add('hidden');
       } else {
         bwModeBtn.disabled = false;
       }
@@ -1164,6 +1190,28 @@
     function showMapMessages(msgs, isError = true){
       mapMessages.style.color = isError ? '#991b1b' : '#0f766e';
       mapMessages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
+    }
+
+    function renderMapLegend(){
+      if (!mapLegend) return;
+      const rows = isBWMode()
+        ? [
+            ['#d1d5db', 'Ratio near 1.0'],
+            ['#6b7280', 'Ratio moderately above/below 1.0'],
+            ['#111827', 'Ratio far above/below 1.0'],
+            ['#ffffff', '✕ marks negative ratios']
+          ]
+        : [
+            ['rgb(0,0,255)', 'Low ratio (near 0.5)'],
+            ['#ffffff', 'Ratio near 1.0'],
+            ['rgb(255,0,0)', 'High ratio (near 2.0)'],
+            ['#ff00ff', 'Negative ratio (data issue flag)']
+          ];
+      mapLegend.innerHTML = `
+        <div><b>Map legend</b></div>
+        ${rows.map(([c, label]) => `<div class="legend-row"><span class="legend-swatch" style="background:${c}"></span><span>${label}</span></div>`).join('')}
+      `;
+      mapLegend.classList.remove('hidden');
     }
 
     function setupMapFieldSelectorsFromRows(rows){
@@ -1297,7 +1345,7 @@
             type: 'circle',
             source: MAP_SOURCE_ID,
             paint: {
-              'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2.5, 8, 5, 12, 7],
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 1.8, 8, 3.6, 12, 5],
               'circle-color': ['get', 'ratioColor'],
               'circle-stroke-color': isBWMode() ? '#000000' : '#111827',
               'circle-stroke-width': isBWMode() ? 1.2 : 0.9,
@@ -1314,7 +1362,7 @@
               filter: ['==', ['get', 'isNegative'], 1],
               layout: {
                 'text-field': '✕',
-                'text-size': 13,
+                'text-size': 11,
                 'text-allow-overlap': true
               },
               paint: {
@@ -1457,6 +1505,7 @@
       if (!parsedRows.length){
         const msg = ['Please compute metrics first so there is data to map.'];
         showMapMessages(msg, true);
+        mapLegend.classList.add('hidden');
         if (!isAutoRefresh) showMessages(msg);
         return;
       }
@@ -1471,6 +1520,7 @@
       if (!latField && !lonField) errs.push('Please choose both latitude and longitude fields.');
       if (errs.length){
         showMapMessages(errs, true);
+        mapLegend.classList.add('hidden');
         if (!isAutoRefresh) showMessages(errs);
         return;
       }
@@ -1479,12 +1529,14 @@
       if (!features.length){
         const msg = ['No valid mappable points were found using the selected fields.'];
         showMapMessages(msg, true);
+        mapLegend.classList.add('hidden');
         if (!isAutoRefresh) showMessages(msg);
         return;
       }
       try {
         renderRatioMap(features, saleField, valField);
         if (mapInstance) mapInstance.resize();
+        renderMapLegend();
         const info = [];
         info.push(`Mapped ${features.length} points.`);
         if (invalidCoords) info.push(`${invalidCoords} rows skipped for invalid/missing coordinates.`);
@@ -1493,6 +1545,7 @@
       } catch (e) {
         const msg = [`Could not render map: ${e && e.message ? e.message : e}`];
         showMapMessages(msg, true);
+        mapLegend.classList.add('hidden');
         if (!isAutoRefresh) showMessages(msg);
       }
     }
