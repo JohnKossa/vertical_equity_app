@@ -254,7 +254,7 @@ function computeMetricsFromPairs(pairs){
   // Overall median CI (posts progress up to ~0.8)
   const ci = medianCIFromRatios(ratios);
   const deviations = ratios.map(x=>Math.abs(x - med));
-  const COD = 100 * (median(deviations) / med);
+  const COD = 100 * (mean(deviations) / med);
   const meanRatio = mean(ratios);
   const weightedMeanRatio = sum(val) / sum(sale);
   const PRD = meanRatio / weightedMeanRatio;
