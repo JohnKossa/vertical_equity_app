@@ -164,9 +164,9 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
   // Get the number of samples
   const N = ratios.length;
   
-  // We must have at least 10 samples, otherwise the result is non-valid
-  if (N < 10){
-    return { VEI: NaN, VEI_significance: NaN, strata: [], vei_note: 'Cannot compute VEI: N < 10' };
+  // We must have at least 20 samples, otherwise the result is non-valid
+  if (N < 20){
+    return { VEI: NaN, VEI_significance: NaN, strata: [], vei_note: 'Cannot compute VEI: N < 20' };
   }
   
   // Calculate the number of groups:

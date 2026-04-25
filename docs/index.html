@@ -624,8 +624,8 @@
 
     function computeVEI(sale, val, ratios, sampleMedian){
       const N = ratios.length;
-      if (N < 10){
-        return { VEI: NaN, VEI_significance: NaN, strata: [], vei_note: 'Cannot compute VEI: N < 10' };
+      if (N < 20){
+        return { VEI: NaN, VEI_significance: NaN, strata: [], vei_note: 'Cannot compute VEI: N < 20' };
       }
       let G = 10;
       if (N <= 50) G = 2; else if (N <= 500) G = 4;
