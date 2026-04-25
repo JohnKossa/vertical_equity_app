@@ -60,7 +60,7 @@ Calculated via a nonparametric bootstrap:
 
 ## COD
 
-Coefficient of Dispersion (IAAO): COD = 100 * median(|ratio − median_ratio|) / median_ratio.
+Coefficient of Dispersion (IAAO): COD = 100 * mean(|ratio − median_ratio|) / median_ratio.
 
 ## PRB
 
