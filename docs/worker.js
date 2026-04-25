@@ -225,7 +225,7 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
   const VEI = ((last.median - first.median) / sampleMedian) * 100;
   
   // Calculate VEI significance
-  const VEI_significance = ((last.ci_high - first.ci_low) / sampleMedian) * 100;
+  const VEI_significance = ((last.ci_low - first.ci_high) / sampleMedian) * 100;
   
   // TODO: also calculate rulings (is VEI stat in/out of range, if out, is it also significant -- test the null hypothesis)
   return { VEI, VEI_significance, strata, vei_note: '' };

@@ -671,7 +671,7 @@
       const first = strata[0];
       const last = strata[strata.length-1];
       const VEI = ((last.median - first.median) / sampleMedian) * 100;
-      const VEI_significance = ((last.ci_high - first.ci_low) / sampleMedian) * 100;
+      const VEI_significance = ((last.ci_low - first.ci_high) / sampleMedian) * 100;
       return { VEI, VEI_significance, strata, vei_note: '' };
     }
 
