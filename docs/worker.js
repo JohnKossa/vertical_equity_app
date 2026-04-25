@@ -124,7 +124,7 @@ function medianCIFromRatios(ratiosIn, { confidence = 0.95 } = {}) {
   // Clean & sort
   const ratios = ratiosIn.filter(x => isFinite(x) && x > 0).slice().sort((a, b) => a - b);
   const n = ratios.length;
-  if (n === 0) return { n: 0, median: NaN, lower: NaN, upper: NaN };
+  if (n === 0) return { low: NaN, high: NaN };
 
   // z per spec
   const z = confidence === 0.90 ? 1.64 : 1.96;
@@ -164,9 +164,9 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
   // Get the number of samples
   const N = ratios.length;
   
-  // We must have at least 10 samples, otherwise the result is non-valid
-  if (N < 10){
-    return { VEI: NaN, VEI_significance: NaN, strata: [], vei_note: 'Cannot compute VEI: N < 10' };
+  // Spec requires at least 20 sales to compute VEI
+  if (N < 20){
+    return { VEI: NaN, VEI_significance: NaN, strata: [], conclusion: 'Insufficient Data', vei_note: 'Cannot compute VEI: N < 20' };
   }
   
   // Calculate the number of groups:
@@ -214,7 +214,7 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
   
   // If we have less than 2 strata, we're in an invalid situation
   if (strata.length < 2){
-    return { VEI: NaN, VEI_significance: NaN, strata, vei_note: 'Insufficient strata after tie handling.' };
+    return { VEI: NaN, VEI_significance: NaN, strata, conclusion: 'Insufficient Data', vei_note: 'Insufficient strata after tie handling.' };
   }
   
   // Identify the first (lowest) and last (highest) strata
@@ -225,10 +225,20 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
   const VEI = ((last.median - first.median) / sampleMedian) * 100;
   
   // Calculate VEI significance
-  const VEI_significance = ((last.ci_high - first.ci_low) / sampleMedian) * 100;
-  
-  // TODO: also calculate rulings (is VEI stat in/out of range, if out, is it also significant -- test the null hypothesis)
-  return { VEI, VEI_significance, strata, vei_note: '' };
+  const VEI_significance = ((last.ci_low - first.ci_high) / sampleMedian) * 100;
+
+  // Conclusion based on VEI decision table
+  const cisOverlap = !(first.ci_high < last.ci_low || last.ci_high < first.ci_low);
+  let conclusion = 'Compliant';
+  if (Math.abs(VEI) > 10) {
+    if (!cisOverlap && Math.abs(VEI_significance) > 10) {
+      conclusion = VEI > 0 ? 'Progressivity' : 'Regressivity';
+    } else {
+      conclusion = 'Inconclusive';
+    }
+  }
+
+  return { VEI, VEI_significance, strata, conclusion, vei_note: '' };
 }
 
 // ---------- Main compute ----------
