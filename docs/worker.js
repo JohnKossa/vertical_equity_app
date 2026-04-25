@@ -206,7 +206,7 @@ function computeVEIWithCI(sale, val, ratios, sampleMedian){
     const group = groups[i];
     const r = group.map(k=>ratios[k]);
     const m = median(r);
-    const ci = r.length >= 2 ? medianCIFromRatios(r) : {low: NaN, high: NaN};
+    const ci = r.length >= 2 ? medianCIFromRatios(r, { confidence: 0.90 }) : {low: NaN, high: NaN};
     const proxyVals = group.map(k => proxy[k]);
     const medProxy = median(proxyVals);
     strata.push({ n: r.length, median: m, ci_low: ci.low, ci_high: ci.high, ratios: r, medProxy });
@@ -252,7 +252,7 @@ function computeMetricsFromPairs(pairs){
 
   const med = median(ratios);
   // Overall median CI (posts progress up to ~0.8)
-  const ci = medianCIFromRatios(ratios);
+  const ci = medianCIFromRatios(ratios, { confidence: 0.90 });
   const deviations = ratios.map(x=>Math.abs(x - med));
   const COD = 100 * (mean(deviations) / med);
   const meanRatio = mean(ratios);
