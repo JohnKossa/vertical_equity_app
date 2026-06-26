@@ -243,6 +243,80 @@
       font-size: 0.92rem;
       margin-top: 8px;
     }
+    .not-official {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .region-explainer {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      background: #f8fafc;
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+    .region-explainer p { margin: 0 0 10px; }
+    .region-explainer ol { margin: 0 0 10px; padding-left: 20px; }
+    .region-explainer li { margin-bottom: 6px; }
+    .region-explainer .hypothesis {
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-left: 3px solid var(--accent);
+      background: #eef2ff;
+      font-weight: 600;
+      font-style: italic;
+    }
+    .adv-rule {
+      border: none;
+      border-top: 4px solid var(--accent);
+      margin: 14px 0 10px;
+    }
+    .adv-subnote {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-style: italic;
+      margin: 0 0 10px;
+    }
+    .callout-note {
+      margin: 8px 0 16px;
+      padding: 12px 16px;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid #f59e0b;
+      border-radius: 10px;
+      background: #fffbeb;
+      color: #78350f;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    .callout-note strong { color: #92400e; }
+    .field-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      background: #eef2ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+      border-radius: 6px;
+      padding: 1px 6px;
+      white-space: nowrap;
+    }
+    .region-chart-title {
+      text-align: center;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text);
+      margin: 18px 0 0;
+    }
+    .yslider-input { cursor: ns-resize; }
+    .yslider-input:focus { cursor: text; box-shadow: 0 0 0 2px rgba(59,130,246,0.4); }
     #mapMessages {
       margin-top: 8px;
       font-size: 0.92rem;
@@ -357,7 +431,36 @@
       <div class="results-footer-actions">
         <button id="savePdfBtnBottom" type="button" class="btn btn-secondary hidden" disabled>Save to PDF</button>
         <button id="bwModeBtn" type="button" class="btn btn-primary hidden" disabled>Black &amp; White optimization: Off</button>
-        <button id="mapBtnBottom" type="button" class="btn btn-secondary hidden" disabled>Put It On A Map</button>
+        <button id="advancedBtnBottom" type="button" class="btn btn-secondary hidden" disabled>Advanced analysis</button>
+      </div>
+    </section>
+
+    <section id="advancedSection" class="hidden">
+      <div class="results-header">
+        <h2>Advanced analysis</h2>
+      </div>
+      <div class="not-official">Not an official IAAO test</div>
+      <hr class="adv-rule" />
+      <p class="adv-subnote">Everything below this line is original, exploratory analysis &mdash; not part of the IAAO Standard on Ratio Studies.</p>
+      <div class="region-explainer">
+        <p>Imagine two cases:</p>
+        <ol>
+          <li>A house sells for $100K in a poor neighborhood where identical homes sell for $100K, but is assessed for $1M.
+            <br><strong>Verdict: over-assessed by 10&times;.</strong></li>
+          <li>A mansion sells for $100K in a rich neighborhood where identical homes sell for $1M, and is assessed for $1M.
+            <br><strong>Verdict: the assessment is correct; the sale price is an invalid, non-arm's-length transaction.</strong></li>
+        </ol>
+        <p><strong>Problem:</strong> comparing price ratios across sale-price deciles <em>cannot distinguish between these two cases</em>. What we really care about is this hypothesis:</p>
+        <div class="hypothesis">Are we over-assessing poor people's homes?</div>
+        <p>But comparing price ratios across sale-price deciles only tests <em>this</em> hypothesis:</p>
+        <div class="hypothesis">Are we "over"-assessing low-priced houses?</div>
+        <p><em>These are not the same hypothesis,</em> because sometimes expensive homes sell for low prices in non-arm's length transactions.</p>
+        <p>To know for sure, we must run two additional tests:
+          <ol>
+            <li>Look at it on a map</li>
+            <li>Group by neighborhood price level</li>
+          </ol>
+        <p>If the vertical equity bias is real, we should see high ratios clustered in poor neighborhoods, and the same bad vertical equity in the neighborhood price level chart. If we see no spatial pattern to high sales ratios, and the neighborhood price level chart is flat, the results may simply be an artifact of invalid sales with artificially low prices.</p>
       </div>
     </section>
 
@@ -384,6 +487,29 @@
       <div id="mapLegend" class="map-legend hidden" aria-live="polite"></div>
       <div id="mapShell" class="map-shell hidden">
         <div id="ratioMap" role="region" aria-label="Map of sale ratio points"></div>
+      </div>
+    </section>
+
+    <section id="regionSection" class="hidden">
+      <div class="results-header">
+        <h2>Neighborhood price level stats</h2>
+      </div>
+      <div class="not-official">Not an official IAAO metric</div>
+      <div class="map-controls">
+        <div class="field">
+          <label for="regionFieldSel">Region field</label>
+          <select id="regionFieldSel"></select>
+        </div>
+      </div>
+      <div class="map-toolbar">
+        <button id="showRegionBtn" type="button" class="btn btn-secondary">Show region analysis</button>
+      </div>
+      <div class="map-note">Rows are bucketed into deciles by the price level of the region they belong to (median market proxy within each region), then median assessment ratios are compared from the lowest- to highest-priced regions.</div>
+      <div id="regionMessages" aria-live="polite"></div>
+      <div id="regionResults"></div>
+      <div class="results-footer-actions">
+        <button id="savePdfBtnRegion" type="button" class="btn btn-secondary">Save to PDF</button>
+        <button id="bwModeBtnRegion" type="button" class="btn btn-primary">Black &amp; White optimization: Off</button>
       </div>
     </section>
 
@@ -485,132 +611,6 @@
       }).format(x);
     }
 
-    // ---------- Bootstrap median CI (seeded) ----------
-    function bootstrapMedianCI90(values, seed=20250101, resamples=10000){
-      const n = values.length;
-      if (n === 0) return {low: NaN, high: NaN};
-      const uniq = new Set(values.map(v=>+v)).size;
-      const baseMed = median(values);
-      if (uniq === 1) return {low: baseMed, high: baseMed};
-      const rng = mulberry32(seed >>> 0);
-      const meds = new Array(resamples);
-      for (let b=0; b<resamples; b++){
-        const sample = new Array(n);
-        for (let i=0;i<n;i++){
-          sample[i] = values[Math.floor(rng()*n)];
-        }
-        meds[b] = median(sample);
-      }
-      meds.sort((x,y)=>x-y);
-      const low = quantileSorted(meds, 0.05);
-      const high = quantileSorted(meds, 0.95);
-      return {low, high};
-    }
-
-    // ---------- PRB: OLS with HC3 robust SE ----------
-    function prbHC3(sale, ratio){
-      const n = ratio.length;
-      if (n < 3) return {slope: NaN, p: NaN};
-      const x = sale.map(s => Math.log(s));
-      // Build X matrix (n x 2): [1, x]
-      let sum1=0, sumx=0, sumxx=0, sumy=0, sumxy=0;
-      for (let i=0;i<n;i++){
-        const xi = x[i]; const yi = ratio[i];
-        sum1 += 1; sumx += xi; sumxx += xi*xi; sumy += yi; sumxy += xi*yi;
-      }
-      const XtX = [ [sum1, sumx], [sumx, sumxx] ];
-      const XtY = [ sumy, sumxy ];
-      const det = XtX[0][0]*XtX[1][1] - XtX[0][1]*XtX[1][0];
-      if (Math.abs(det) < 1e-12) return {slope: NaN, p: NaN};
-      const inv = [ [ XtX[1][1]/det, -XtX[0][1]/det ], [ -XtX[1][0]/det, XtX[0][0]/det ] ];
-      const beta0 = inv[0][0]*XtY[0] + inv[0][1]*XtY[1];
-      const beta1 = inv[1][0]*XtY[0] + inv[1][1]*XtY[1];
-      // Residuals and hat values h_ii for 2-parameter model
-      const e = new Array(n);
-      const h = new Array(n);
-      for (let i=0;i<n;i++){
-        const xi = x[i]; const yi = ratio[i];
-        const yhat = beta0 + beta1*xi;
-        e[i] = yi - yhat;
-        // h_ii = x_i' (X'X)^{-1} x_i with x_i = [1, xi]
-        const v0 = inv[0][0] + inv[0][1]*xi;
-        const v1 = inv[1][0] + inv[1][1]*xi;
-        h[i] = v0*1 + v1*xi; // equivalently: [1,xi] inv [1;xi]
-      }
-      // HC3 variance: (X'X)^{-1} (X' diag(e_i^2/(1-h_i)^2) X) (X'X)^{-1}
-      let S00=0,S01=0,S11=0;
-      for (let i=0;i<n;i++){
-        const xi = x[i];
-        const w = e[i]*e[i] / Math.pow(1 - Math.min(h[i], 0.999999), 2);
-        S00 += w * 1 * 1;
-        S01 += w * 1 * xi;
-        S11 += w * xi * xi;
-      }
-      // Compute middle matrix M = X'WX
-      const M = [ [S00, S01], [S01, S11] ];
-      // Var(beta) = inv * M * inv
-      const V00 = inv[0][0]* (M[0][0]*inv[0][0] + M[0][1]*inv[1][0]) + inv[0][1]*( M[1][0]*inv[0][0] + M[1][1]*inv[1][0] );
-      const V01 = inv[0][0]* (M[0][0]*inv[0][1] + M[0][1]*inv[1][1]) + inv[0][1]*( M[1][0]*inv[0][1] + M[1][1]*inv[1][1] );
-      const V11 = inv[1][0]* (M[0][0]*inv[0][1] + M[0][1]*inv[1][1]) + inv[1][1]*( M[1][0]*inv[0][1] + M[1][1]*inv[1][1] );
-      const se1 = Math.sqrt(Math.max(V11, 0));
-      const slope = beta1;
-      // Normal approximation for p-value
-      const z = se1 > 0 ? Math.abs(slope / se1) : NaN;
-      const p = isFinite(z) ? 2*(1 - normalCDF(z)) : NaN;
-      return {slope, p};
-    }
-
-    // Standard normal CDF (Hart approximation)
-    function normalCDF(x){
-      // Abramowitz and Stegun formula 7.1.26
-      const t = 1 / (1 + 0.2316419 * Math.abs(x));
-      const d = 0.3989423 * Math.exp(-x*x/2);
-      let p = d * t * (0.3193815 + t*(-0.3565638 + t*(1.781478 + t*(-1.821256 + t*1.330274))));
-      if (x > 0) p = 1 - p; else p = p;
-      return p;
-    }
-
-    function computeMetrics(rows, saleField, valField){
-      // rows: array of objects with fields
-      const filtered = [];
-      let ignored = 0, excludedNonPos = 0;
-      for (const r of rows){
-        const sale = parseNumber(r[saleField]);
-        const val = parseNumber(r[valField]);
-        if (!isFinite(sale) || !isFinite(val)) { ignored++; continue; }
-        if (sale <= 0) { excludedNonPos++; continue; }
-        filtered.push({sale, val});
-      }
-      const sale = filtered.map(r=>r.sale);
-      const val = filtered.map(r=>r.val);
-      const ratios = filtered.map(r=> r.val / r.sale);
-      const n = ratios.length;
-      const messages = [];
-      messages.push(`${rows.length} rows read. ${ignored} ignored for empty/non-numeric fields. ${excludedNonPos} excluded for sale_price ≤ 0.`);
-      if (n === 0) return {messages, n, error:"No valid rows after exclusions."};
-
-      const med = median(ratios);
-      const ci = bootstrapMedianCI90(ratios);
-      const deviations = ratios.map(x=>Math.abs(x - med));
-      const COD = 100 * (mean(deviations) / med);
-      const meanRatio = mean(ratios);
-      const weightedMeanRatio = sum(val) / sum(sale);
-      const PRD = meanRatio / weightedMeanRatio;
-
-      let PRB_slope = NaN, PRB_p = NaN;
-      if (n >= 3 && new Set(sale).size > 1){
-        const prb = prbHC3(sale, ratios);
-        PRB_slope = prb.slope;
-        PRB_p = prb.p;
-      } else {
-        messages.push('PRB cannot be computed: need N ≥ 3 and variation in sale_price.');
-      }
-
-      const vei = computeVEI(sale, val, ratios, med);
-
-      return {messages, n, med, ci, COD, PRD, PRB_slope, PRB_p, ...vei};
-    }
-
     function parseNumber(v){
       if (v === null || v === undefined) return NaN;
       if (typeof v === 'number') return v;
@@ -620,68 +620,6 @@
       const t = s.replace(/,/g, '');
       const x = Number(t);
       return isFinite(x) ? x : NaN;
-    }
-
-    function computeVEI(sale, val, ratios, sampleMedian){
-      const N = ratios.length;
-      if (N < 20){
-        return { VEI: NaN, VEI_significance: NaN, strata: [], conclusion: 'Insufficient Data', vei_note: 'Cannot compute VEI: N < 20' };
-      }
-      let G = 10;
-      if (N <= 50) G = 2; else if (N <= 500) G = 4;
-      const proxy = sale.map((s,i)=> 0.5*s + 0.5*(val[i] / sampleMedian));
-      const idx = Array.from({length:N}, (_,i)=>i);
-      idx.sort((i,j)=>{
-        const di = proxy[i] - proxy[j];
-        if (di !== 0) return di;
-        return i - j; // stable
-      });
-      // Near-equal groups with tie handling
-      const base = Math.floor(N / G);
-      let remainder = N % G;
-      const groups = [];
-      let start = 0;
-      for (let g=0; g<G; g++){
-        let size = base + (remainder > 0 ? 1 : 0);
-        if (remainder > 0) remainder--;
-        let end = start + size; // exclusive
-        // Tie handling at boundary: if proxy[end-1] == proxy[end], extend
-        while (end < N && proxy[idx[end-1]] === proxy[idx[end]]){
-          end++;
-        }
-        const slice = idx.slice(start, end);
-        groups.push(slice);
-        start = end;
-        if (start >= N) break;
-      }
-      // Rebalance if we overshot due to many ties: merge trailing empties
-      if (groups.length > 0 && groups[groups.length-1].length === 0){
-        groups.pop();
-      }
-
-      const strata = groups.map(gIdx => {
-        const r = gIdx.map(i=>ratios[i]);
-        const m = median(r);
-        const ci = r.length >= 2 ? bootstrapMedianCI90(r) : {low: NaN, high: NaN};
-        return { n: r.length, median: m, ci_low: ci.low, ci_high: ci.high };
-      });
-      if (strata.length < 2){
-        return { VEI: NaN, VEI_significance: NaN, strata, conclusion: 'Insufficient Data', vei_note: 'Insufficient strata after tie handling.' };
-      }
-      const first = strata[0];
-      const last = strata[strata.length-1];
-      const VEI = ((last.median - first.median) / sampleMedian) * 100;
-      const VEI_significance = ((last.ci_low - first.ci_high) / sampleMedian) * 100;
-      const cisOverlap = !(first.ci_high < last.ci_low || last.ci_high < first.ci_low);
-      let conclusion = 'Compliant';
-      if (Math.abs(VEI) > 10) {
-        if (!cisOverlap && Math.abs(VEI_significance) > 10) {
-          conclusion = VEI > 0 ? 'Progressivity' : 'Regressivity';
-        } else {
-          conclusion = 'Inconclusive';
-        }
-      }
-      return { VEI, VEI_significance, strata, conclusion, vei_note: '' };
     }
 
     function renderResults(target, data){
@@ -702,7 +640,7 @@
       mainRows.push(`<tr><th>PRB slope (per ln(price))</th><td>${formatNumber(data.PRB_slope,4)}</td></tr>`);
       mainRows.push(`<tr><th>PRB p-value</th><td>${formatNumber(data.PRB_p,4)}</td></tr>`);
 
-      const mainTableHtml = `<h3>Results</h3><table>${mainRows.join('')}</table>`;
+      const mainTableHtml = `<h3>Ratio Study</h3><table>${mainRows.join('')}</table>`;
 
       // ---------- VEI Results (3 columns, no column header) ----------
       const veiVal = data.VEI;
@@ -783,12 +721,12 @@
       const resultsNode = document.getElementById('results');
       if (!resultsNode || resultsNode.querySelector('.results-empty')) return;
 
-      const saveLabelTop = savePdfBtn.textContent;
-      const saveLabelBottom = savePdfBtnBottom.textContent;
-      savePdfBtn.disabled = true;
-      savePdfBtnBottom.disabled = true;
-      savePdfBtn.textContent = 'Preparing PDF…';
-      savePdfBtnBottom.textContent = 'Preparing PDF…';
+      const savedLabels = saveButtons.map((b) => b ? b.textContent : '');
+      for (const b of saveButtons){
+        if (!b) continue;
+        b.disabled = true;
+        b.textContent = 'Preparing PDF…';
+      }
 
       try {
         if (typeof window.generatePDF !== 'function') {
@@ -798,8 +736,7 @@
         const tablesHtml = resultsNode.querySelectorAll('table');
         const sections = [
           { type: 'text', content: 'Vertical Equity Studies Report', isTitle: true },
-          { type: 'text', content: `Generated ${new Date().toLocaleString()}` },
-          { type: 'text', content: `Visualization mode: ${isBWMode() ? 'Black & White optimization' : 'Color mode'}` }
+          { type: 'text', content: `Generated ${new Date().toLocaleString()}` }
         ];
 
         tablesHtml.forEach((tbl, i) => {
@@ -819,6 +756,44 @@
 
         if (document.getElementById('veiPlot')) {
           sections.push({ type: 'chart', plotlyDivId: 'veiPlot', title: 'VEI Chart', pageBreakBefore: true });
+        }
+
+        const regionVisible = regionSection && !regionSection.classList.contains('hidden') && regionRendered;
+        if (regionVisible) {
+          const fieldVal = lastRegionField || 'region';
+          // jsPDF can't draw a capsule inline within wrapped cell text, so strip the
+          // literal field out of cell/header text — it's shown only as capsules
+          // (the "Chosen field" box and the capsule titles below).
+          const stripField = (s) => {
+            let out = String(s);
+            if (fieldVal) out = out.split(fieldVal + ' ').join('').split(fieldVal).join('');
+            return out.replace(/\s{2,}/g, ' ').replace(/\s+([.,])/g, '$1').trim();
+          };
+          sections.push({ type: 'text', content: 'Neighborhood price level stats', isTitle: true, pageBreakBefore: true });
+          sections.push({ type: 'fieldchip', label: 'Chosen field:', value: fieldVal });
+          document.querySelectorAll('#regionResults table').forEach((tbl, i) => {
+            let titleNode = tbl.previousElementSibling;
+            while (titleNode && !/^H[1-6]$/.test(titleNode.tagName)) titleNode = titleNode.previousElementSibling;
+            const title = titleNode ? titleNode.textContent : `Table ${i + 1}`;
+            const bodyRows = Array.from(tbl.querySelectorAll('tbody tr'));
+            if (!bodyRows.length) return;
+            const headerRow = tbl.querySelector('thead tr');
+            const headers = headerRow
+              ? Array.from(headerRow.cells).map((cell) => stripField((cell.textContent || '').trim()))
+              : [];
+            const rows = bodyRows.map((tr) => Array.from(tr.cells).map((cell) => stripField((cell.textContent || '').trim())));
+            // Render the field-led heading as a capsule + remaining text.
+            if (title.indexOf(fieldVal) === 0) {
+              sections.push({ type: 'titlechip', value: fieldVal, suffix: title.slice(fieldVal.length) });
+            } else {
+              sections.push({ type: 'text', content: title, isTitle: true });
+            }
+            sections.push({ type: 'table', headers, rows });
+          });
+          if (document.getElementById('regionPlot')) {
+            sections.push({ type: 'titlechip', value: fieldVal, suffix: ' price level chart' });
+            sections.push({ type: 'chart', plotlyDivId: 'regionPlot', title: '' });
+          }
         }
 
         const mapIsVisible = mapSection && !mapSection.classList.contains('hidden') &&
@@ -842,21 +817,24 @@
             imageHeight: snap.height,
             imageFormat: snap.format || 'PNG'
           });
+          sections.push({ type: 'text', content: '© OpenStreetMap contributors © CARTO', align: 'right', small: true });
           const legendRows = getMapLegendRows();
           sections.push({ type: 'legend', title: 'Map legend', rows: legendRows });
         }
 
         await window.generatePDF({
           filename: 'vertical-equity-results.pdf',
-          sections
+          sections,
+          bw: isBWMode()
         });
       } catch (err) {
         showMessages([`PDF export failed: ${err && err.message ? err.message : err}`]);
       } finally {
-        savePdfBtn.disabled = false;
-        savePdfBtnBottom.disabled = false;
-        savePdfBtn.textContent = saveLabelTop;
-        savePdfBtnBottom.textContent = saveLabelBottom;
+        saveButtons.forEach((b, idx) => {
+          if (!b) return;
+          b.disabled = false;
+          b.textContent = savedLabels[idx];
+        });
       }
     }
 
@@ -917,8 +895,14 @@
     }
 
     // ---------- VEI Chart ----------
-    function renderVEIChart(data) {
-      const wrap = document.getElementById('veiChart');
+    function renderVEIChart(data, opts = {}) {
+      const {
+        containerId = 'veiChart',
+        plotId = 'veiPlot',
+        btnPrefix = 'vei',
+        title = 'Vertical Equity Analysis using Vertical Equity Indicator (VEI)'
+      } = opts;
+      const wrap = document.getElementById(containerId);
       if (!wrap || !window.Plotly) return;
       if (!data.strata || data.strata.length < 2 || !isFinite(data.med)) return;
 
@@ -926,6 +910,7 @@
       const groupLabel = G === 2 ? 'Half' : G === 4 ? 'Quartile' : G === 10 ? 'Decile' : 'Group';
       const boxIndices = Array.from({length: G}, (_, i) => i);
       const ciIndex = G;
+      const ctIndex = G + 1;
       const bw = isBWMode();
       const medColor = bw ? '#111827' : '#dc2626';
       const boxMarker = bw ? '#1f2937' : '#3b82f6';
@@ -935,23 +920,79 @@
       const ciMarkerLine = bw ? '#000000' : '#1d4ed8';
       const ciSymbol = bw ? 'square' : 'diamond';
 
-      // Build inner layout: top controls row + Plotly chart
-      const btnBase = 'display:flex;align-items:center;gap:7px;padding:6px 9px;' +
+      // ----- Y-axis range: full sample extent + default whisker-based fences -----
+      const qSorted = (sorted, p) => {
+        if (!sorted.length) return NaN;
+        const pos = (sorted.length - 1) * p, b = Math.floor(pos), r = pos - b;
+        return sorted[b + 1] !== undefined ? sorted[b] + r * (sorted[b + 1] - sorted[b]) : sorted[b];
+      };
+      const flat = [];
+      for (const s of data.strata) for (const v of s.ratios) if (isFinite(v)) flat.push(v);
+      flat.sort((a, b) => a - b);
+      const fullMin = flat.length ? flat[0] : 0;
+      const fullMax = flat.length ? flat[flat.length - 1] : 1;
+      // Default fences = widest Tukey whisker across strata, widened to keep
+      // every median and 90% CI marker in view.
+      let wLo = Infinity, wHi = -Infinity;
+      for (const s of data.strata){
+        const r = s.ratios.filter(isFinite).slice().sort((a, b) => a - b);
+        if (!r.length) continue;
+        const q1 = qSorted(r, 0.25), q3 = qSorted(r, 0.75), iqr = q3 - q1;
+        const loF = q1 - 1.5 * iqr, hiF = q3 + 1.5 * iqr;
+        let lo = r[0]; for (const v of r){ if (v >= loF){ lo = v; break; } }
+        let hi = r[r.length - 1]; for (let i = r.length - 1; i >= 0; i--){ if (r[i] <= hiF){ hi = r[i]; break; } }
+        wLo = Math.min(wLo, lo); wHi = Math.max(wHi, hi);
+      }
+      for (const s of data.strata){
+        if (isFinite(s.ci_low)) wLo = Math.min(wLo, s.ci_low);
+        if (isFinite(s.ci_high)) wHi = Math.max(wHi, s.ci_high);
+      }
+      if (isFinite(data.med)){ wLo = Math.min(wLo, data.med); wHi = Math.max(wHi, data.med); }
+      if (!isFinite(wLo)) wLo = fullMin;
+      if (!isFinite(wHi)) wHi = fullMax;
+      const fencePad = (wHi - wLo) * 0.05 || 0.05;
+      let defLo = Math.max(fullMin, wLo - fencePad);
+      let defHi = Math.min(fullMax, wHi + fencePad);
+      if (defHi <= defLo){ defLo = fullMin; defHi = fullMax; }
+
+      // Build inner layout: y-range slider + Plotly div + controls column
+      const btnBase = 'display:flex;align-items:center;gap:7px;width:100%;padding:6px 9px;' +
         'border-radius:7px;border:1px solid #93c5fd;background:#ffffff;' +
         'color:#1e3a8a;font:inherit;font-size:12px;cursor:pointer;text-align:left;';
       const dot = c => `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};flex-shrink:0;"></span>`;
+      const trackBg = bw ? '#d1d5db' : '#e2e8f0';
+      const fillBg = bw ? '#9ca3af' : '#bfdbfe';
+      const handleAccent = bw ? '#111827' : '#3b82f6';
+      const handleText = bw ? '#111827' : '#1e3a8a';
+      const handleBase = 'position:absolute;left:50%;transform:translate(-50%,-50%);width:56px;min-width:0;height:22px;' +
+        'background:#fff;border:2px solid ' + handleAccent + ';border-radius:5px;' +
+        'font:inherit;font-size:11px;color:' + handleText + ';text-align:center;padding:0;box-sizing:border-box;' +
+        'outline:none;touch-action:none;box-shadow:0 1px 2px rgba(0,0,0,.15);z-index:2;';
+      // Top margin shrinks when there's no native Plotly title (region chart uses an HTML title instead).
+      const topMargin = title ? 50 : 30;
       wrap.innerHTML = `
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px 2px;">
-            <div style="font-size:11px;color:#64748b;font-weight:600;white-space:nowrap;">click to show/hide:</div>
-            <button id="veiBtnBoxes"  style="${btnBase}">${dot('#4285F4')}Box distribution</button>
-            <button id="veiBtnMedian" style="${btnBase}">${dot(medColor)}Sample median</button>
-            <button id="veiBtnCI"     style="${btnBase}">${dot('#ffffff')}90% CI (median)</button>
+        <div style="display:flex;gap:0;align-items:flex-start;">
+          <div style="flex:0 0 64px;align-self:stretch;min-height:420px;padding:${topMargin}px 8px 50px 0;box-sizing:border-box;">
+            <div style="position:relative;height:100%;display:flex;justify-content:center;">
+              <div id="${btnPrefix}SliderTrack" title="Drag a handle to set the range, or click it to type a value. Double-click the track to reset." style="position:relative;width:6px;height:100%;background:${trackBg};border-radius:3px;cursor:pointer;">
+                <div id="${btnPrefix}SliderFill" style="position:absolute;left:-2px;right:-2px;background:${fillBg};border-radius:4px;"></div>
+                <input id="${btnPrefix}HandleHi" class="yslider-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" style="${handleBase}" />
+                <input id="${btnPrefix}HandleLo" class="yslider-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" style="${handleBase}" />
+              </div>
+            </div>
           </div>
-          <div id="veiPlot" style="min-height:420px;"></div>
+          <div id="${plotId}" style="flex:1;min-height:420px;"></div>
+          <div style="flex:0 0 148px;padding:${topMargin}px 0 0 14px;display:flex;flex-direction:column;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:600;">click to show/hide:</div>
+            <button id="${btnPrefix}BtnBoxes"  style="${btnBase}">${dot('#4285F4')}Box distribution</button>
+            <button id="${btnPrefix}BtnMedian" style="${btnBase}">${dot(medColor)}Sample median</button>
+            <button id="${btnPrefix}BtnCI"     style="${btnBase}">${dot(bw ? '#111827' : '#0f172a')}90% CI (bounds)</button>
+            <button id="${btnPrefix}BtnCT"     style="${btnBase}">${dot(ciMarkerLine)}Central tendency</button>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">Y range: drag a handle on the left, or click it to type a value. Double-click the track to reset.</div>
+          </div>
         </div>`;
 
-      const plotEl = document.getElementById('veiPlot');
+      const plotEl = document.getElementById(plotId);
 
       const traces = data.strata.map((s, i) => ({
         type: 'box',
@@ -980,7 +1021,7 @@
           thickness: 2.5,
           width: 10,
         },
-        marker: { symbol: ciSymbol, size: 9, color: ciMarkerColor, line: { color: ciMarkerLine, width: 1.5 } },
+        marker: { symbol: 'line-ew', size: 9, color: ciMarkerLine, line: { color: ciMarkerLine, width: 2 } },
         customdata: data.strata.map(s => [s.ci_low, s.ci_high]),
         hovertemplate:
           '<b>%{x}</b><br>' +
@@ -989,10 +1030,22 @@
           '<extra></extra>',
       });
 
+      // Central tendency: a blue-outlined white diamond at each group's median
+      // (same marker as the old CI), sized to fully obscure the CI median tick.
+      traces.push({
+        type: 'scatter',
+        mode: 'markers',
+        showlegend: false,
+        x: data.strata.map((_, i) => `${groupLabel} ${i + 1}`),
+        y: data.strata.map(s => s.median),
+        marker: { symbol: ciSymbol, size: 12, color: ciMarkerColor, line: { color: ciMarkerLine, width: 1.5 } },
+        hovertemplate: '<b>%{x}</b><br>Median: %{y:.4f}<extra></extra>',
+      });
+
       const layout = {
-        title: { text: 'Vertical Equity Analysis using Vertical Equity Indicator (VEI)', font: { size: 15 } },
+        title: { text: title, font: { size: 15 } },
         xaxis: { title: groupLabel, showgrid: false },
-        yaxis: { title: 'Ratio', zeroline: false, gridcolor: bw ? '#d1d5db' : '#e2e8f0' },
+        yaxis: { title: 'Ratio', zeroline: false, gridcolor: bw ? '#d1d5db' : '#e2e8f0', autorange: false, range: [defLo, defHi] },
         paper_bgcolor: 'transparent',
         plot_bgcolor: '#ffffff',
         font: { color: bw ? '#111827' : '#1f2937', family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' },
@@ -1002,34 +1055,202 @@
         annotations: [{ xref: 'paper', x: 1.01, xanchor: 'left', yref: 'y', y: data.med,
                         text: `Sample<br>Median<br>${data.med.toFixed(4)}`, showarrow: false,
                         font: { color: medColor, size: 11 } }],
-        margin: { t: 50, r: 80, b: 50, l: 60 },
+        margin: { t: topMargin, r: 80, b: 50, l: 60 },
       };
 
       Plotly.newPlot(plotEl, traces, layout, { responsive: true, displayModeBar: false });
 
+      // ----- Y-range slider wiring -----
+      (function setupYSlider(){
+        const track = document.getElementById(`${btnPrefix}SliderTrack`);
+        const fill  = document.getElementById(`${btnPrefix}SliderFill`);
+        const hHi   = document.getElementById(`${btnPrefix}HandleHi`);
+        const hLo   = document.getElementById(`${btnPrefix}HandleLo`);
+        if (!track || !fill || !hHi || !hLo) return;
+        const loBound = Math.min(0, fullMin); // slider always reaches at least 0 (lower only if data is negative)
+        const span = (fullMax - loBound) || 1;
+        const minGap = span * 0.01;
+        let curLo = defLo, curHi = defHi;
+        const frac = v => (v - loBound) / span;
+        const fmt = v => Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2);
+        // Clamp a proposed value into its valid bound and store it.
+        function setFromValue(which, v){
+          if (which === 'hi') curHi = Math.min(fullMax, Math.max(v, curLo + minGap));
+          else                curLo = Math.max(loBound, Math.min(v, curHi - minGap));
+        }
+        function paint(){
+          hHi.style.top = ((1 - frac(curHi)) * 100) + '%';
+          hLo.style.top = ((1 - frac(curLo)) * 100) + '%';
+          fill.style.top = ((1 - frac(curHi)) * 100) + '%';
+          fill.style.bottom = (frac(curLo) * 100) + '%';
+          // Don't clobber the field the user is actively typing in.
+          if (document.activeElement !== hHi) hHi.value = fmt(curHi);
+          if (document.activeElement !== hLo) hLo.value = fmt(curLo);
+        }
+        function apply(){ Plotly.relayout(plotEl, { 'yaxis.range': [curLo, curHi], 'yaxis.autorange': false }); }
+        paint();
+
+        // Each handle is both draggable and an editable text field. A press that
+        // moves is a drag; a press that doesn't move is a click → focus to edit.
+        function wireHandle(input, which){
+          input.addEventListener('pointerdown', function(ev){
+            // Pop the handle being grabbed above the other so overlapping handles stay clickable.
+            const other = input === hHi ? hLo : hHi;
+            input.style.zIndex = '4'; other.style.zIndex = '3';
+            if (document.activeElement === input) return; // already editing: normal text behavior
+            ev.preventDefault();                          // suppress auto-focus so we can detect drag vs click
+            const startY = ev.clientY;
+            let moved = false;
+            const move = e => {
+              if (!moved && Math.abs(e.clientY - startY) < 3) return;
+              moved = true;
+              const rect = track.getBoundingClientRect();
+              let f = 1 - (e.clientY - rect.top) / rect.height;
+              f = Math.max(0, Math.min(1, f));
+              setFromValue(which, loBound + f * span);
+              paint(); apply();
+            };
+            const up = () => {
+              window.removeEventListener('pointermove', move);
+              window.removeEventListener('pointerup', up);
+              if (!moved){ input.focus(); input.select(); } // click → edit
+            };
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+          });
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+            else if (e.key === 'Escape'){ e.preventDefault(); input.value = fmt(which === 'hi' ? curHi : curLo); input.blur(); }
+          });
+          // Validate on defocus: snap whatever was typed into the valid bound.
+          input.addEventListener('blur', () => {
+            const v = parseFloat(String(input.value).replace(/,/g, ''));
+            if (isFinite(v)) setFromValue(which, v);
+            paint(); apply();
+          });
+        }
+        wireHandle(hHi, 'hi');
+        wireHandle(hLo, 'lo');
+        hHi.style.zIndex = '4'; hLo.style.zIndex = '3'; // upper handle on top by default
+        track.addEventListener('dblclick', (e) => {
+          if (e.target !== track && e.target !== fill) return; // not when double-clicking a handle
+          curLo = defLo; curHi = defHi; paint(); apply();
+        });
+      })();
+
       // Toggle wiring
-      const state = { boxes: true, ci: false, median: true };
+      const state = { boxes: true, ci: false, median: true, ct: false };
       function styleBtn(btn, active) {
         btn.style.borderColor = active ? '#3b82f6' : '#cbd5e1';
         btn.style.color       = active ? '#1e3a8a' : '#94a3b8';
       }
-      Plotly.restyle(plotEl, { visible: false }, [ciIndex]);
-      styleBtn(document.getElementById('veiBtnCI'), false);
-      document.getElementById('veiBtnBoxes').addEventListener('click', function() {
+      Plotly.restyle(plotEl, { visible: false }, [ciIndex, ctIndex]);
+      styleBtn(document.getElementById(`${btnPrefix}BtnCI`), false);
+      styleBtn(document.getElementById(`${btnPrefix}BtnCT`), false);
+      document.getElementById(`${btnPrefix}BtnBoxes`).addEventListener('click', function() {
         state.boxes = !state.boxes;
         Plotly.restyle(plotEl, { visible: state.boxes }, boxIndices);
         styleBtn(this, state.boxes);
       });
-      document.getElementById('veiBtnCI').addEventListener('click', function() {
+      document.getElementById(`${btnPrefix}BtnCI`).addEventListener('click', function() {
         state.ci = !state.ci;
         Plotly.restyle(plotEl, { visible: state.ci }, [ciIndex]);
         styleBtn(this, state.ci);
       });
-      document.getElementById('veiBtnMedian').addEventListener('click', function() {
+      document.getElementById(`${btnPrefix}BtnCT`).addEventListener('click', function() {
+        state.ct = !state.ct;
+        Plotly.restyle(plotEl, { visible: state.ct }, [ctIndex]);
+        styleBtn(this, state.ct);
+      });
+      document.getElementById(`${btnPrefix}BtnMedian`).addEventListener('click', function() {
         state.median = !state.median;
         const c = state.median ? medColor : 'rgba(0,0,0,0)';
         Plotly.relayout(plotEl, { 'shapes[0].line.color': c, 'annotations[0].font.color': c });
         styleBtn(this, state.median);
+      });
+    }
+
+    // ---------- Neighborhood price level (region) results ----------
+    function renderRegionResults(data){
+      const el = document.getElementById('regionResults');
+      if (!el) return;
+      if (data.error){
+        el.innerHTML = `<div class="error">${data.error}</div>`;
+        return;
+      }
+
+      // The chosen region field, shown verbatim in a chip (no capitalization,
+      // no underscore stripping) so it's clearly the literal column name.
+      const rawField = lastRegionField || 'region';
+      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const chip = `<span class="field-chip">${esc(rawField)}</span>`;
+
+      // Same ±10% interpretation as the VEI section, contextualized for the chosen region field.
+      const veiVal = data.VEI;
+      const veiSigVal = data.VEI_significance;
+      const hasVEI = Number.isFinite(veiVal);
+      const hasVEISig = Number.isFinite(veiSigVal);
+
+      let explain = '—';
+      let within = false;
+      if (!hasVEI){
+        explain = data.vei_note ? data.vei_note : 'Not enough data to compute the indicator.';
+      } else {
+        const dir = veiVal > 0
+          ? `progressivity (higher-priced ${chip} groups assessed at higher ratios)`
+          : (veiVal < 0 ? `regressivity (higher-priced ${chip} groups assessed at lower ratios)` : 'neutral');
+        within = Math.abs(veiVal) <= 10;
+        const status = within ? 'is within acceptable limits' : 'may be outside of acceptable limits';
+        explain = `The indicator is ${formatPct(veiVal,2)}, which ${status}.` +
+          (dir === 'neutral' ? '' : ` This suggests ${within ? 'slight ' : ''}${dir}.`);
+      }
+
+      let sigExplain = '—';
+      if (!hasVEISig){
+        sigExplain = data.vei_note ? data.vei_note : 'Not enough data to assess significance.';
+      } else {
+        const dirWord = hasVEI
+          ? (veiVal < 0 ? 'regressivity' : (veiVal > 0 ? 'progressivity' : 'inequity'))
+          : 'inequity';
+        sigExplain = Math.abs(veiSigVal) < 10
+          ? `The significance value is below 10%, so this test did not find evidence of statistically significant inequity across ${chip} price levels.`
+          : `The significance value exceeds 10%, so this test found evidence of statistically significant ${dirWord} across ${chip} price levels.`;
+      }
+
+      const rows = [];
+      const nRegions = data.nNeighborhoods;
+      const regionCountText = nRegions != null
+        ? `across ${nRegions} ${chip} group${nRegions === 1 ? '' : 's'}`
+        : `across ${chip} groups`;
+      rows.push(`<tr><th>Sample size</th><td>${data.n}</td><td>${regionCountText}</td></tr>`);
+      rows.push(`<tr><th>Indicator</th><td>${formatPct(veiVal,2)}${data.vei_note ? ` <span class="muted">(${data.vei_note})</span>` : ''}</td><td>${explain}</td></tr>`);
+      // Match VEI behavior: only show significance when the indicator is outside the ±10% range.
+      if (hasVEI && !within){
+        rows.push(`<tr><th>Significance</th><td>${formatPct(veiSigVal,2)}</td><td>${sigExplain}</td></tr>`);
+      }
+
+      let strataHtml = '';
+      if (data.strata && data.strata.length){
+        strataHtml += `<h4>${chip} price level strata</h4>`;
+        strataHtml += `<table><thead><tr><th>#</th><th>N</th><th>Median ${chip} price level</th><th>Median ratio</th><th>90% CI</th></tr></thead><tbody>`;
+        data.strata.forEach((s, i)=>{
+          strataHtml += `<tr><td>${i+1}</td><td>${s.n}</td><td>${formatCurrency(s.medProxy)}</td><td>${formatNumber(s.median,4)}</td><td>[${formatNumber(s.ci_low,4)}, ${formatNumber(s.ci_high,4)}]</td></tr>`;
+        });
+        strataHtml += '</tbody></table>';
+      }
+
+      el.innerHTML = `
+        <h3>${chip} price level results</h3>
+        <div class="callout-note"><strong>Note:</strong> This is <em>not</em> IAAO's VEI test. This is an original test by <strong>openratiostudy.com</strong> that reproduces the exact same math, but groups by regional price level, not by individual sale price. We do not mean to imply any official endorsement by IAAO in presenting this test.</div>
+        <table><tbody>${rows.join('')}</tbody></table>
+        ${strataHtml}
+        <div class="region-chart-title">Vertical Equity across ${chip} price levels</div>
+        <div id="regionChart" style="margin-top:4px;min-height:420px;"></div>`;
+
+      // No native Plotly title (it can't carry the chip); the HTML title above stands in.
+      renderVEIChart(data, {
+        containerId: 'regionChart', plotId: 'regionPlot', btnPrefix: 'region',
+        title: ''
       });
     }
 
@@ -1045,7 +1266,6 @@
     const bwModeBtn = document.getElementById('bwModeBtn');
     const savePdfBtn = document.getElementById('savePdfBtn');
     const savePdfBtnBottom = document.getElementById('savePdfBtnBottom');
-    const mapBtnBottom = document.getElementById('mapBtnBottom');
     const mapSection = document.getElementById('mapSection');
     const showMapBtn = document.getElementById('showMapBtn');
     const resetMapExtentsBtn = document.getElementById('resetMapExtentsBtn');
@@ -1053,6 +1273,18 @@
     const mapLegend = document.getElementById('mapLegend');
     const mapShell = document.getElementById('mapShell');
     const messages = document.getElementById('messages');
+    const advancedBtnBottom = document.getElementById('advancedBtnBottom');
+    const advancedSection = document.getElementById('advancedSection');
+    const regionSection = document.getElementById('regionSection');
+    const regionFieldSel = document.getElementById('regionFieldSel');
+    const showRegionBtn = document.getElementById('showRegionBtn');
+    const regionMessages = document.getElementById('regionMessages');
+    const savePdfBtnRegion = document.getElementById('savePdfBtnRegion');
+    const bwModeBtnRegion = document.getElementById('bwModeBtnRegion');
+
+    // All "Save to PDF" and "Black & White" buttons (kept in sync across sections).
+    const saveButtons = [savePdfBtn, savePdfBtnBottom, savePdfBtnRegion];
+    const bwButtons = [bwModeBtn, bwModeBtnRegion];
 
     let parsedRows = [];
     let mapInstance = null;
@@ -1060,6 +1292,11 @@
     let mapRendered = false;
     let lastRunContext = null;
     let lastMetricsResult = null;
+    let lastRegionResult = null;
+    let lastRegionField = '';
+    let regionRendered = false;
+    let regionQualifies = false;
+    let mapQualifies = false;
     let mapStyleMode = null;
     let viewMode = sessionStorage.getItem('vizMode') === 'bw' ? 'bw' : 'color';
     const MAP_SOURCE_ID = 'ratio-points-source';
@@ -1118,7 +1355,7 @@
             '^(sale|price|sale[_\\\s-]*price|sp)$'
           ]);
           const valGuess = guessField(headers, [
-            '^(assessed|appraised|valuation|value|av|sv|assessed[_\\\s-]*value)$'
+            '^(prediction|predicted|predicted[_\\\s-]*value|estimate|estimated[_\\\s-]*value|assessed|appraised|valuation|value|market[_\\\s-]*value|market|av|sv|assessed[_\\\s-]*value)$'
           ]);
           populateSelect(saleFieldSel, headers, saleGuess);
           populateSelect(valFieldSel, headers, valGuess);
@@ -1152,9 +1389,12 @@
     }
 
     function applyViewModeButtonState(){
-      bwModeBtn.textContent = `Black & White optimization: ${isBWMode() ? 'On' : 'Off'}`;
-      bwModeBtn.classList.toggle('btn-primary', !isBWMode());
-      bwModeBtn.classList.toggle('btn-secondary', isBWMode());
+      for (const btn of bwButtons){
+        if (!btn) continue;
+        btn.textContent = `Black & White optimization: ${isBWMode() ? 'On' : 'Off'}`;
+        btn.classList.toggle('btn-primary', !isBWMode());
+        btn.classList.toggle('btn-secondary', isBWMode());
+      }
       sessionStorage.setItem('vizMode', viewMode);
     }
 
@@ -1162,16 +1402,55 @@
       bwModeBtn.classList.toggle('hidden', !hasFile);
       savePdfBtn.classList.toggle('hidden', !hasFile);
       savePdfBtnBottom.classList.toggle('hidden', !hasFile);
-      mapBtnBottom.classList.toggle('hidden', !hasFile);
+      advancedBtnBottom.classList.toggle('hidden', !hasFile);
       if (!hasFile){
         bwModeBtn.disabled = true;
         savePdfBtn.disabled = true;
         savePdfBtnBottom.disabled = true;
-        mapBtnBottom.disabled = true;
+        advancedBtnBottom.disabled = true;
+        advancedSection.classList.add('hidden');
         mapLegend.classList.add('hidden');
       } else {
         bwModeBtn.disabled = false;
       }
+    }
+
+    // ---- Advanced analysis availability ----
+    const REGION_FIELD_PATTERNS = [
+      '^(neighborhood|nbhd|region|area|zone|district|ward|subdivision|school[_\\s-]*elementary|school[_\\s-]*middle|school[_\\s-]*high|school|model[_\\s-]*group|census|tract|block|zip|zipcode|postal)$'
+    ];
+    const LAT_FIELD_PATTERNS = ['^(lat|latitude|y|y_coord|ycoord)$'];
+    const LON_FIELD_PATTERNS = ['^(lon|lng|long|longitude|x|x_coord|xcoord)$'];
+
+    // Strict match: returns the first field whose lowercased name matches a
+    // pattern, or '' if none match (unlike guessField, which falls back to [0]).
+    function matchField(fields, patterns){
+      const list = fields.map(f => ({ f, l: String(f).toLowerCase() }));
+      for (const pat of patterns){
+        const re = new RegExp(pat);
+        const hit = list.find(x => re.test(x.l));
+        if (hit) return hit.f;
+      }
+      return '';
+    }
+
+    function detectQualifications(rows){
+      const fields = rows && rows.length ? Object.keys(rows[0]) : [];
+      regionQualifies = !!matchField(fields, REGION_FIELD_PATTERNS);
+      mapQualifies = !!(matchField(fields, LAT_FIELD_PATTERNS) && matchField(fields, LON_FIELD_PATTERNS));
+    }
+
+    function applyAdvancedAvailability(){
+      advancedBtnBottom.disabled = !(regionQualifies || mapQualifies);
+    }
+
+    // Reveal the advanced blurb plus whichever analysis sections the data qualifies for.
+    function revealAdvancedSection(){
+      advancedSection.classList.remove('hidden');
+      if (regionQualifies) regionSection.classList.remove('hidden');
+      if (mapQualifies) mapSection.classList.remove('hidden');
+      advancedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (mapQualifies && mapInstance) setTimeout(() => mapInstance.resize(), 0);
     }
 
     fileInput.addEventListener('change', () => {
@@ -1262,6 +1541,11 @@
       mapMessages.innerHTML = msgs.map(m=>`<div>${m}</div>`).join('');
     }
 
+    function showRegionMessages(msgs, isError = false){
+      regionMessages.style.color = isError ? '#991b1b' : '#0f766e';
+      regionMessages.innerHTML = (msgs || []).map(m=>`<div>${m}</div>`).join('');
+    }
+
     function renderMapLegend(){
       if (!mapLegend) return;
       const rows = getMapLegendRows();
@@ -1292,6 +1576,10 @@
       const lonGuess = guessOptionalField(fields, ['^(lon|lng|long|longitude|x|x_coord|xcoord)$']);
       populateOptionalSelect(latFieldSel, fields, latGuess);
       populateOptionalSelect(lonFieldSel, fields, lonGuess);
+      const regionGuess = guessField(fields, [
+        '^(neighborhood|nbhd|region|area|zone|district|ward|school[_\\s-]*elementary|school|model[_\\s-]*group)$'
+      ]);
+      populateSelect(regionFieldSel, fields, regionGuess);
     }
 
     function ratioToColor(r){
@@ -1551,13 +1839,22 @@
               const out = ev.data.result;
               showMessages(out.messages || []);
               renderResults('results', out);
-              mapBtnBottom.disabled = false;
+              detectQualifications(parsedRows);
+              applyAdvancedAvailability();
               if (mapRendered) {
                 tryBuildMap(true);
+              }
+              if (regionRendered) {
+                runRegionAnalysis();
               }
               setLoading(false);
               if (inputDrawer) inputDrawer.open = false;
               document.querySelector('section + section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (type === 'doneRegion'){
+              lastRegionResult = ev.data.result;
+              showRegionMessages(lastRegionResult.messages || []);
+              renderRegionResults(lastRegionResult);
+              regionRendered = true;
             } else if (type === 'error'){
               showMessages([`Error: ${ev.data.error}`]);
               setLoading(false);
@@ -1580,12 +1877,27 @@
       w.postMessage({ type: 'compute', pairs });
     }
 
-    function revealMapSection(){
-      mapSection.classList.remove('hidden');
-      mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (mapInstance) {
-        setTimeout(() => mapInstance.resize(), 0);
+    function runRegionAnalysis(){
+      if (!parsedRows.length || !lastRunContext){
+        showRegionMessages(['Please compute metrics first so there is data to analyze.'], true);
+        return;
       }
+      const regionField = regionFieldSel && regionFieldSel.value;
+      if (!regionField){
+        showRegionMessages(['Please choose a region field.'], true);
+        return;
+      }
+      lastRegionField = regionField;
+      const { saleField, valField } = lastRunContext;
+      const w = window.__metricsWorker;
+      if (!w){
+        showRegionMessages(['Compute metrics first to start the analysis worker.'], true);
+        return;
+      }
+      const pairs = parsedRows.map(r => [r[saleField], r[valField]]);
+      const regions = parsedRows.map(r => r[regionField]);
+      showRegionMessages(['Computing neighborhood price level stats…']);
+      w.postMessage({ type: 'computeRegion', pairs, regions });
     }
 
     function tryBuildMap(isAutoRefresh = false){
@@ -1643,6 +1955,12 @@
       if (lastMetricsResult) {
         renderVEIChart(lastMetricsResult);
       }
+      if (regionRendered && lastRegionResult) {
+        renderVEIChart(lastRegionResult, {
+          containerId: 'regionChart', plotId: 'regionPlot', btnPrefix: 'region',
+          title: ''
+        });
+      }
       if (mapRendered) {
         tryBuildMap(true);
       }
@@ -1652,9 +1970,13 @@
     bwModeBtn.addEventListener('click', toggleViewMode);
     savePdfBtn.addEventListener('click', exportResultsToPDF);
     savePdfBtnBottom.addEventListener('click', exportResultsToPDF);
-    mapBtnBottom.addEventListener('click', revealMapSection);
     showMapBtn.addEventListener('click', () => tryBuildMap(false));
     resetMapExtentsBtn.addEventListener('click', fitMapToData);
+    advancedBtnBottom.addEventListener('click', revealAdvancedSection);
+    showRegionBtn.addEventListener('click', runRegionAnalysis);
+    regionFieldSel.addEventListener('change', () => { if (regionRendered) runRegionAnalysis(); });
+    savePdfBtnRegion.addEventListener('click', exportResultsToPDF);
+    bwModeBtnRegion.addEventListener('click', toggleViewMode);
   </script>
 </body>
 </html>
